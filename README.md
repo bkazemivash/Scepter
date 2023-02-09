@@ -1,2 +1,2 @@
-# Sceptre
+# Scepter
 Spatiotemporal brain dynamics analysis
