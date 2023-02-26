@@ -1,5 +1,5 @@
 EXPERIMENT:
-  TAG: dense_ViT_12_cossimilarity
+  TAG: dense_ViT_12_PearsonCorrelation
   NETWORK_ID: 9
   SAVE_MODEL: True
 MODEL:
@@ -24,4 +24,4 @@ TRAIN:
   WEIGHT_DECAY: 0.01
   BATCH_SIZE: 5
   WORKERS: 4
-  LOSS: CosineSimilarity
+  LOSS: PearsonCorrelation
