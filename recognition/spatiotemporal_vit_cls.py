@@ -128,6 +128,7 @@ class EncoderBlock(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
     
+
 class VisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
@@ -145,7 +146,7 @@ class VisionTransformer(nn.Module):
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
     """        
     def __init__(self, img_size=384, patch_size=16, in_chans=3, n_classes=1000, embed_dim=768, 
-                 depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0., num_timepoints=8, 
+                 depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0., time_dim=8, 
                  attention_type='divided_space_time') -> None:
         super().__init__()
         self.patch_embed = PatchEmbed(
@@ -157,7 +158,7 @@ class VisionTransformer(nn.Module):
         self.pos_embed_space = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
         self.pos_drop = nn.Dropout(p)
 
-        self.spatial_encoder = nn.ModuleList(
+        self.blocks = nn.ModuleList(
             [
                 EncoderBlock(
                     dim=embed_dim, 
