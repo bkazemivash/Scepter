@@ -93,7 +93,8 @@ class MLP(nn.Module):
         x = self.drop(x)
         return x
 
-class SpatialEncoder(nn.Module):
+
+class EncoderBlock(nn.Module):
     """Implementation of Transformer block
 
     Args:
@@ -127,3 +128,62 @@ class SpatialEncoder(nn.Module):
         x = x + self.mlp(self.norm2(x))
         return x
     
+class VisionTransformer(nn.Module):
+    """Implementation of Vision Transformer 
+
+    Args:
+        img_size (int): Size of the image (Max dim if not square) Defaults to 384.
+        patch_size (int, optional): Size of the patch. Defaults to 16.
+        in_chans (int, optional): Number of channels. Defaults to 3.
+        n_classes (int, optional): Number of classes. Defaults to 1000.
+        embed_dim (int, optional): Dimension of embedding. Defaults to 768.
+        depth (int, optional): Number of Transformer blocks. Defaults to 12.
+        n_heads (int, optional): Number of attention heads. Defaults to 12.
+        mlp_ratio (float, optional): Drop out ratio of MLP. Defaults to 4.
+        qkv_bias (bool, optional): Enable bias. Defaults to True.
+        p (float, optional): Drop out ratio of ViT. Defaults to 0.
+        attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
+    """        
+    def __init__(self, img_size=384, patch_size=16, in_chans=3, n_classes=1000, embed_dim=768, 
+                 depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0., num_timepoints=8, 
+                 attention_type='divided_space_time') -> None:
+        super().__init__()
+        self.patch_embed = PatchEmbed(
+                img_size=img_size, 
+                patch_size=patch_size, 
+                in_chans=in_chans, 
+                embed_dim=embed_dim,)
+        self.cls_token_space = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.pos_embed_space = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
+        self.pos_drop = nn.Dropout(p)
+
+        self.spatial_encoder = nn.ModuleList(
+            [
+                EncoderBlock(
+                    dim=embed_dim, 
+                    n_heads=n_heads, 
+                    mlp_ratio=mlp_ratio, 
+                    qkv_bias=qkv_bias, 
+                    p=p, 
+                    attn_p=attn_p,)
+                for _ in range(depth)
+            ]
+        )
+        self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
+        self.head = nn.Linear(embed_dim, n_classes)
+
+    def forward(self, x):
+        n_samples = x.shape[0]
+        x = self.patch_embed(x)
+        cls_token_space = self.cls_token_space.expand(n_samples, -1, -1)
+        x = torch.cat((cls_token_space, x), dim=1)
+        x = x + self.pos_embed
+        x = self.pos_drop(x)
+        
+        for block in self.blocks:
+            x = block(x)
+        
+        x = self.norm(x)
+        cls_token_final = x[:, 0]
+        x = self.head(cls_token_final)
+        return x
