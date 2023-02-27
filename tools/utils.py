@@ -14,7 +14,7 @@ from functools import reduce
 
 
 def weights_init(m: nn.Module) -> None:
-    """Function to initialize model weights using kaiming method
+    """Initialize model weights using kaiming method
 
     Args:
         m (nn.Module): model layers
@@ -32,7 +32,7 @@ def weights_init(m: nn.Module) -> None:
 
    
 def tuple_prod(inp: Tuple[int]) -> int:
-    """Function multiplies all elements of the input tuple.
+    """Multiplies all elements of the input tuple.
        -- Equivalent to numpy.prod, but with lower running time in our case
        
     Args:
@@ -44,8 +44,22 @@ def tuple_prod(inp: Tuple[int]) -> int:
     return reduce(operator.mul, inp, 1)
 
 
+def get_num_patches(inp_dim: Tuple[int], patch_size: int) -> int:
+    """Computes number of patches for a given tensor.
+       
+    Args:
+        inp_dim (Tuple[int]): input tuple
+        patch_size (int): size of the patch
+
+    Returns:
+        int: Number of generated patches
+    """    
+    return reduce(operator.mul, tuple(map(lambda x: x//patch_size, inp_dim)), 1)
+
+
+
 def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
-    """Function to scale input array in range of [lb, ub]
+    """Scale input array in range of [lb, ub]
 
     Args:
         ar (np.ndarray): input array to be scaled
@@ -60,7 +74,7 @@ def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
 
 
 def normalize_array(ar: np.ndarray, ax = -1) -> np.ndarray:
-    """Function to z-score input array
+    """Z-score input array
 
     Args:
         ar (np.ndarray): input array to be normalized.         

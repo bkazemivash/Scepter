@@ -3,12 +3,13 @@
 
 import torch
 import torch.nn as nn
+from tools.utils import get_num_patches
 
 class PatchEmbed(nn.Module):
     """Split volume into patches.
 
     Args:
-        vol_size (int): Size of the volume (Max dim if not square)
+        img_size (Tuple[int]): Size of the volume (3D volume)
         patch_size (int): Size of the patch
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
@@ -17,7 +18,7 @@ class PatchEmbed(nn.Module):
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
-        self.n_patches = (img_size // patch_size) ** 3
+        self.n_patches = get_num_patches(img_size, patch_size)
         self.proj = nn.Conv3d(
                 in_chans, 
                 embed_dim, 
@@ -38,8 +39,8 @@ class Attention(nn.Module):
         dim (int): The input/output dimension of token feature.
         n_heads (int, optional): Number of attention heads. Defaults to 12.
         qkv_bias (bool, optional): Enable bias for query, key, and value projections. Defaults to True.
-        attn_p (float, optional): Drop out ratio for attention module. Defaults to 0..
-        proj_p (float, optional): Drop out ratio for output. Defaults to 0..
+        attn_p (float, optional): Drop out ratio for attention module. Defaults to 0.
+        proj_p (float, optional): Drop out ratio for output. Defaults to 0.
     """            
     def __init__(self, dim, n_heads=12, qkv_bias=True, attn_p=0., proj_p=0.) -> None:
         super().__init__()
@@ -145,9 +146,71 @@ class VisionTransformer(nn.Module):
         p (float, optional): Drop out ratio of ViT. Defaults to 0.
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
     """        
+    def __init__(self, img_size=63, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
+                 depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,) -> None:
+        super().__init__()
+        self.patch_embed = PatchEmbed(
+                img_size=img_size, 
+                patch_size=patch_size, 
+                in_chans=in_chans, 
+                embed_dim=embed_dim,)
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
+        self.pos_drop = nn.Dropout(p)
+
+        self.blocks = nn.ModuleList(
+            [
+                EncoderBlock(
+                    dim=embed_dim, 
+                    n_heads=n_heads, 
+                    mlp_ratio=mlp_ratio, 
+                    qkv_bias=qkv_bias, 
+                    p=p, 
+                    attn_p=attn_p,)
+                for _ in range(depth)
+            ]
+        )
+        self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
+        self.head = nn.Linear(embed_dim, n_classes)
+
+    def forward(self, x):
+        n_samples = x.shape[0]
+        x = self.patch_embed(x)
+        cls_token = self.cls_token.expand(n_samples, -1, -1)
+        x = torch.cat((cls_token, x), dim=1)
+        x = x + self.pos_embed
+        x = self.pos_drop(x)
+        
+        for block in self.blocks:
+            x = block(x)
+        
+        x = self.norm(x)
+        cls_token_final = x[:, 0]
+        x = self.head(cls_token_final)
+        return x
+
+
+
+
+class VisionTransformer2(nn.Module):
+    """Implementation of Vision Transformer 
+
+    Args:
+        img_size (int): Size of the image (Max dim if not square) Defaults to 384.
+        patch_size (int, optional): Size of the patch. Defaults to 16.
+        in_chans (int, optional): Number of channels. Defaults to 3.
+        n_classes (int, optional): Number of classes. Defaults to 1000.
+        embed_dim (int, optional): Dimension of embedding. Defaults to 768.
+        depth (int, optional): Number of Transformer blocks. Defaults to 12.
+        n_heads (int, optional): Number of attention heads. Defaults to 12.
+        mlp_ratio (float, optional): Drop out ratio of MLP. Defaults to 4.
+        qkv_bias (bool, optional): Enable bias. Defaults to True.
+        p (float, optional): Drop out ratio of ViT. Defaults to 0.
+        attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
+    """        
     def __init__(self, img_size=384, patch_size=16, in_chans=3, n_classes=1000, embed_dim=768, 
                  depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0., time_dim=8, 
-                 attention_type='divided_space_time') -> None:
+                 attention_type='FactorizedEncoder') -> None:
         super().__init__()
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
