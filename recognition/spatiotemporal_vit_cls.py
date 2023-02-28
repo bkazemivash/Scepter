@@ -145,12 +145,11 @@ class VisionTransformer(nn.Module):
         qkv_bias (bool, optional): Enable bias. Defaults to True.
         p (float, optional): Drop out ratio of ViT. Defaults to 0.
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
-        time_dim (int, optional): Size of time axis. Defaultls to 490.
         attn_type (str, optional): Spatiotemporal encoding type. Defaults to 'FactorizedEncoder'
     """        
     def __init__(self, img_size=63, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
-                 depth=12, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
-                 time_dim=490, attn_type='FactorizedEncoder') -> None:
+                 depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
+                 attn_type='FactorizedEncoder') -> None:
         super().__init__()
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
@@ -160,8 +159,8 @@ class VisionTransformer(nn.Module):
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
         self.pos_drop = nn.Dropout(p)
-
-        self.blocks = nn.ModuleList(
+        self.attn_type = attn_p
+        self.spatial_blocks = nn.ModuleList(
             [
                 EncoderBlock(
                     dim=embed_dim, 
@@ -178,14 +177,14 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, n_classes)
 
     def forward(self, x):
-        n_samples = x.shape[0]
+        n_samples, n_timepoints, _, _, _ = x.shape
         x = self.patch_embed(x)
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
         x = x + self.pos_embed
         x = self.pos_drop(x)
         
-        for block in self.blocks:
+        for block in self.spatial_blocks:
             x = block(x)
         
         x = self.norm(x)
