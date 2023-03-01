@@ -1,4 +1,4 @@
-"""Functions for processing and visualization.
+"""Helper functions for verification and preprocessing.
 
 This module contains mandatory functions to run different preprocessing / postprocessing steps on input fMRI 
 images."""

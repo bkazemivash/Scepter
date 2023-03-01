@@ -1,4 +1,7 @@
-"""Implementation of spatiotemporal ViT with blah strategy"""
+"""
+Implementation of spatiotemporal Vision Transfor (ViT) classifier with 
+space_through_time,  factorization strategy.
+"""
 
 
 import torch
@@ -10,12 +13,12 @@ class PatchEmbed(nn.Module):
     """Split volume into patches.
 
     Args:
-        img_size (Tuple[int]): Size of the volume (3D volume)
+        img_size (Tuple[int, int, int]): Size of the volume (3D volume)
         patch_size (int): Size of the patch
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
     """        
-    def __init__(self, img_size: Tuple[int], patch_size: int, in_chans=1, embed_dim=768) -> None:
+    def __init__(self, img_size: Tuple[int, int, int], patch_size: int, in_chans=1, embed_dim=768,) -> None:
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -108,7 +111,7 @@ class EncoderBlock(nn.Module):
         attn_p (float, optional): Drop out ratio for attn block. Defaults to 0.
         p (float, optional): Drop out ratio for projection. Defaults to 0.
     """        
-    def __init__(self, dim, n_heads, mlp_ratio=4.0, qkv_bias=True, p=0., attn_p=0.) -> None:
+    def __init__(self, dim, n_heads, mlp_ratio=4.0, qkv_bias=True, p=0., attn_p=0.,) -> None:
         super().__init__()
         self.norm1 = nn.LayerNorm(dim, eps=1e-6)
         self.attn = Attention(
@@ -147,19 +150,22 @@ class VisionTransformer(nn.Module):
         qkv_bias (bool, optional): Enable bias. Defaults to True.
         p (float, optional): Drop out ratio of ViT. Defaults to 0.
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
-        attn_type (str, optional): Spatiotemporal encoding type. Defaults to 'FactorizedEncoder'
+        attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_through_time'
+        n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size=63, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
+    def __init__(self, img_size=(53, 63, 52), patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
-                 attn_type='FactorizedEncoder') -> None:
+                 attn_type='space_through_time', n_timepoints=490) -> None:
         super().__init__()
+        self.attention_type = attn_type
+        self.time_dim = n_timepoints 
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
                 patch_size=patch_size, 
                 in_chans=in_chans, 
                 embed_dim=embed_dim,)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
         self.pos_drop = nn.Dropout(p)
         self.attn_type = attn_p
         self.spatial_blocks = nn.ModuleList(
@@ -179,8 +185,13 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, n_classes)
 
     def forward(self, x):
-        n_samples, n_timepoints, _, _, _ = x.shape
         x = self.patch_embed(x)
+        if self.attention_type == 'space_through_time':
+            n_samples, n_time_by_patch, embbeding_dim = x.shape
+            n_samples //= self.time_dim 
+            n_time_by_patch *= self.time_dim
+            x = torch.reshape(x, (n_samples, n_time_by_patch, embbeding_dim))
+
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
         x = x + self.pos_embed
