@@ -44,11 +44,11 @@ def tuple_prod(inp: Tuple[int]) -> int:
     return reduce(operator.mul, inp, 1)
 
 
-def get_num_patches(inp_dim: Tuple[int], patch_size: int) -> int:
+def get_num_patches(inp_dim: Tuple[int, int, int], patch_size: int) -> int:
     """Computes number of patches for a given tensor.
        
     Args:
-        inp_dim (Tuple[int]): input tuple
+        inp_dim (Tuple[int, int, int]): input tuple
         patch_size (int): size of the patch
 
     Returns:
