@@ -44,9 +44,9 @@ class ScepterViTDataset(Dataset):
                  min_max_scale: Union[None, Tuple[int, int]] = None,
                  imbalanced_flag=False,
                  n_timepoint= 100,
-                 normalization_dim= 1,
+                 normalization_dim: Union[None, int] = 1,
                  transform=False,
-                 Task='Recognition'):
+                 task='Recognition'):
         self.info_dataframe = pd.read_pickle(image_list_file)
         self.dataset_name = dataset_name
         self.mask_img = mask_file
@@ -56,7 +56,7 @@ class ScepterViTDataset(Dataset):
         self.time_bound = n_timepoint
         self.norm_dim = normalization_dim
         self.transform = img_transform() if transform else None 
-        self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if Task == 'Recognition' else None
+        self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
         """Load and preprocess an fMRI image.
@@ -70,8 +70,7 @@ class ScepterViTDataset(Dataset):
         img_dir = self.info_dataframe.iloc[sample_idx].FilePath
         img = fmri_preprocess(inp_img=img_dir,
                               mask_img=self.mask_img,
-                              ax=self.norm_dim,
-                              normalize=True,
+                              norm_dim=self.norm_dim,
                               scale=self.scaling,
                               time_slice=self.time_bound)
         return torch.from_numpy(img).float()

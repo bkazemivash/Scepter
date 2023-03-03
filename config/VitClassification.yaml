@@ -1,6 +1,6 @@
 EXPERIMENT:
   TAG: cls_spatiotemporal_ViT_space_through_time
-  NAME: ScepterClassificationViT
+  NAME: ScepterRecognitionViT
   EDITION: 2
   TYPE: ViT
   SAVE_MODEL: True

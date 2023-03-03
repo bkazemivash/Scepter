@@ -90,33 +90,31 @@ def normalize_array(ar: np.ndarray, ax = -1) -> np.ndarray:
 
 def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     mask_img: str,
-                    ax = 1,
-                    normalize = False,
+                    norm_dim: Union[None, int] = None,
                     scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0) -> np.ndarray:
-    """ Mask, z-score, and scale input fMRI image.   
+    """ Mask, z-score, and scale input fMRI image.
 
     Args:
-        inp_img (Union[str, Nifti1Image]): A 4D Niimg-like object or a directory of it
-        mask_img (str): path to a 3D Niimg-like mask object
-        ax (int, optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI). Defaults to 1.
-        normalize (bool, optional): True if z-score is needed. Defaults to False.
+        inp_img (Union[str, Nifti1Image]): A 4D Niimg-like object or a directory of it.
+        mask_img (str): Path to a 3D Niimg-like mask object
+        norm_dim (Union[None, int], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI). Defaults to None.
         scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
-        time_slice (int, optional): _description_. Defaults to 0.
+        time_slice (int, optional): Slice of timepoints. Defaults to 0.
 
     Raises:
-        TypeError: if 'inp_img' is not a Niimg-like object
+        TypeError: If 'inp_img' is not a Niimg-like object
 
     Returns:
         np.ndarray: 4D image array
-    """   
+    """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
     if time_slice > 0:
         inp_img = index_img(inp_img, slice(0, time_slice)) # type: ignore    
     data = apply_mask(inp_img, mask_img)
-    if normalize:
-        data = normalize_array(data, ax=ax)
+    if norm_dim is not None:
+        data = normalize_array(data, ax=norm_dim)
     if scale:
         data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
     data = unmask(data, mask_img)
