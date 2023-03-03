@@ -15,13 +15,27 @@ def img_transform():
     """Implementation of callable transform function.
 
     Returns:
-        callable: transform the input volume by changing time dim and adding channel dim
+        callable: transform the input volume by changing time dim and adding channel dim.
     """
     return transforms.Compose([
             transforms.Lambda(lambda x: x.permute(3,0,1,2).unsqueeze(0))
         ])
 
 class ScepterViTDataset(Dataset):      
+    """Dual purpose dataset class for recognition and dense prediction.
+
+    Args:
+        image_list_file (str): Path to pandas dataframe including dataset information.
+        dataset_name (str): Name of dataset.
+        mask_file (str): Path to mask file.
+        image_size (Tuple[int,...]): Size of each fMRI image.
+        min_max_scale (Union[None, Tuple[int, int]], optional): If not None, set lower and upper bound of scaling. Defaults to None.
+        imbalanced_flag (bool, optional): True if dataset is imbalanced otherwise False. Defaults to False.
+        n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
+        normalization_dim (int, optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
+        transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
+        Task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
+    """        
     def __init__(self, 
                  image_list_file: str,
                  dataset_name: str,
@@ -32,7 +46,7 @@ class ScepterViTDataset(Dataset):
                  n_timepoint= 100,
                  normalization_dim= 1,
                  transform=False,
-                 Task='Classification'):
+                 Task='Recognition'):
         self.info_dataframe = pd.read_pickle(image_list_file)
         self.dataset_name = dataset_name
         self.mask_img = mask_file
@@ -42,9 +56,17 @@ class ScepterViTDataset(Dataset):
         self.time_bound = n_timepoint
         self.norm_dim = normalization_dim
         self.transform = img_transform() if transform else None 
-        self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if Task == 'Classification' else None
+        self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if Task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
+        """Load and preprocess an fMRI image.
+
+        Args:
+            sample_idx (int): Index of a subject in dataset.
+
+        Returns:
+            torch.Tensor: 5D tensor of image data, (#channel_size, #timepoints, 3D space).
+        """        
         img_dir = self.info_dataframe.iloc[sample_idx].FilePath
         img = fmri_preprocess(inp_img=img_dir,
                               mask_img=self.mask_img,
@@ -54,7 +76,15 @@ class ScepterViTDataset(Dataset):
                               time_slice=self.time_bound)
         return torch.from_numpy(img).float()
 
-    def _load_label(self, sample_idx: int) -> torch.Tensor:    
+    def _load_label(self, sample_idx: int) -> torch.Tensor:
+        """Load label of each sample and convert to one-hot encoding.
+
+        Args:
+            sample_idx (int): Index of a subject in dataset.
+
+        Returns:
+            torch.Tensor: one-hot encoding of relevent label.
+        """                
         assert self.class_dict !=  None, ValueError('Class labels are not defined!')
         status = self.info_dataframe.iloc[sample_idx].Diagnosis
         status_idx = torch.tensor(self.class_dict[status], dtype=torch.int64)
