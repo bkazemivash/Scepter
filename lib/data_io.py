@@ -1,13 +1,16 @@
-"""Module contains BrainFMRIDataset class for dataloading and preprocessing."""
+"""
+Dataset class for brain scans - fMRI data for spatiotemporal 
+classification of brain disease.
+"""
 
 import torch
-import scipy.io as iom
+import pandas as pd
 from typing import Tuple 
 from torch.utils.data.dataset import Dataset
 from torchvision import transforms
-from tools.utils import fmri_masking, tuple_prod
+from tools.utils import fmri_preprocess, tuple_prod
 
-def _transformation():
+def img_transform():
     """Implementation of callable transform function.
 
     Returns:
@@ -17,52 +20,53 @@ def _transformation():
             transforms.Lambda(lambda x: x.unsqueeze(0))
         ])
 
-class UKBiobankDensePredictionDataset(Dataset):
-    """Brain fMRI dataset with extracted ICA components as prior
-
-    Args:
-        image_dir (list): list of fMRI files' directories
-        component_dir (list): list of components' directories - prior
-        processing_info (list): list of meta-data files
-        mask_path (str): path to mask file
-        valid_components (list): indices of verified components
-        component_id (int): target brain network
-        min_max_scale (bool, optional): scale input volume in range [0,1]. Defaults to True.
-    """    
-    def __init__(self, image_dir: list, component_dir: list, processing_info: list, mask_path: str, 
-                valid_components: Tuple[int,...], component_id: int, image_size: Tuple[int,...], min_max_scale=False):
-        self.images = image_dir
-        self.ica_maps = component_dir
-        self.ica_informaion = processing_info
-        self.mask_path = mask_path
-        self.verified_components = valid_components
-        self.ica_map_id = component_id
-        self.scaling = min_max_scale
+class ScepterViTDataset(Dataset):  
+    def __init__(self, 
+                 image_list_file: str,
+                 dataset_name: str,
+                 mask_file: str,
+                 image_size: Tuple[int,...],
+                 min_max_scale=False,
+                 imbalanced_flag=False,
+                 n_timepoint= 100,
+                 transform=False,
+                 Task='Classification'):
+        self.info_dataframe = pd.read_pickle(image_list_file)
+        self.dataset_name = dataset_name
+        self.mask_img = mask_file
         self.image_size = image_size
-        self.transform = _transformation()
+        self.scaling = min_max_scale
+        self.imbalanced = imbalanced_flag
+        self.time_bound = n_timepoint
+        self.transform = img_transform() if transform else None 
+        self.classes = None if Task == 'DensePrediction' else self.info_dataframe.Diagnosis.unique() 
 
-    def _input_volume_load(self, subject_ind: int) -> torch.Tensor:  
-        img = fmri_masking(self.images[subject_ind], self.mask_path, nor=True, sc=self.scaling)
-        return torch.from_numpy(img.get_fdata()).float()
+    def _load_img(self, sample_idx: int) -> torch.Tensor:  
+        img_dir = self.info_dataframe[sample_idx].FilePath
+        img = fmri_preprocess(inp_img=img_dir,
+                              mask_img=self.mask_img,
+                              ax=1,
+                              normalize=True,
+                              scale=(-2, 2),
+                              time_slice=100)
+        return torch.from_numpy(img).float()
 
-    def _ica_prior_load(self, subject_ind: int) -> torch.Tensor:    
-        param = torch.Tensor(self.verified_components) - 1
-        file_content = iom.loadmat(self.ica_maps[subject_ind])
-        data_cube = torch.einsum('nmk,mjk->njk', torch.Tensor(file_content['ic'])[param.long(),:].T.unsqueeze(1), 
-                            torch.Tensor(file_content['tc']) [:,param.long()].unsqueeze(0))
-        gaussian_cdf = torch.div(torch.abs(data_cube[:,:,self.ica_map_id]), torch.abs(data_cube).sum(dim=-1)).float()
-        file_content = iom.loadmat(self.ica_informaion[subject_ind])        
-        vol_indices = torch.Tensor(file_content['sesInfo'][0,0]['mask_ind']).ravel() - 1
-        map4d = torch.zeros(tuple_prod(self.image_size[:3]), self.image_size[-1], dtype=torch.float32)
-        map4d[vol_indices.long(),:] = gaussian_cdf
-        return map4d.reshape(*reversed(self.image_size[:3]), self.image_size[-1]).permute(*reversed(range(len(self.image_size[:3]))),3)
+    def _load_label(self, sample_idx: int) -> torch.Tensor:    
+        status = self.info_dataframe[sample_idx].Diagnosis
+        
+
+        
+
+
+
+
 
     def __len__(self):
-        return len(self.images)
+        return len(self.info_dataframe)
 
     def __getitem__(self, idx):
-        img = self._input_volume_load(idx)
-        label = self._ica_prior_load(idx)        
+        img = self._load_img(idx)
+        label = self._load_label(idx)        
         if self.transform:
             img = self.transform(img)
             label = self.transform(label)

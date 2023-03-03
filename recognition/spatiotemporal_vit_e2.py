@@ -18,7 +18,7 @@ class PatchEmbed(nn.Module):
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
     """        
-    def __init__(self, img_size: Tuple[int, int, int], patch_size: int, in_chans=1, embed_dim=768,) -> None:
+    def __init__(self, img_size: Tuple[int, ...], patch_size: int, in_chans=1, embed_dim=768,) -> None:
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
