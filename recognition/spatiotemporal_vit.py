@@ -13,7 +13,7 @@ class PatchEmbed(nn.Module):
     """Split volume into patches.
 
     Args:
-        img_size (Tuple[int, int, int]): Size of the volume (3D volume)
+        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)e volume (3D volume)
         patch_size (int): Size of the patch
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
@@ -139,7 +139,7 @@ class VisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
     Args:
-        img_size (int): Size of the image (Max dim if not square) Defaults to 384.
+        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)
         patch_size (int, optional): Size of the patch. Defaults to 16.
         in_chans (int, optional): Number of channels. Defaults to 3.
         n_classes (int, optional): Number of classes. Defaults to 1000.
@@ -153,7 +153,7 @@ class VisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_through_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size=(53, 63, 52), patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
                  attn_type='space_through_time', n_timepoints=490) -> None:
         super().__init__()

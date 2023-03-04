@@ -34,7 +34,7 @@ class ScepterViTDataset(Dataset):
         n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
         normalization_dim (int, optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
-        Task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
+        task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
     """        
     def __init__(self, 
                  image_list_file: str,

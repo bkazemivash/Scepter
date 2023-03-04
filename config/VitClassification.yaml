@@ -1,35 +1,39 @@
 EXPERIMENT:
-  TAG: cls_spatiotemporal_ViT_space_through_time
-  NAME: ScepterRecognitionViT
-  EDITION: 2
-  TYPE: ViT
-  SAVE_MODEL: True
+  tag: cls_spatiotemporal_ViT_space_through_time
+  name: ScepterRecognitionViT
+  edition: 2
+  type: ViT
+  save_model: True
 MODEL:
-  IMG_SIZE: (53, 63, 52),
-  PATCH_SIZE: 7,
-  IN_CHANS: 1,
-  N_CLASSES: 2,
-  EMBED_DIM: 768,
-  DEPTH: 12,
-  N_HEADS: 12,
-  MLP_RATIO: 4,
-  QKV_BIAS: True,
-  P: 0,
-  ATTN_P: 0,
-  ATTN_TYPE: space_through_time,
-  N_TIMEPOINTS: 20
+  img_size: [1, 100, 53, 63, 52]
+  patch_size: 7
+  in_chans: 1
+  n_classes: 3
+  embed_dim: 768
+  depth: 12
+  n_heads: 12
+  mlp_ratio: 4
+  qkv_bias: True
+  p: 0.
+  attn_p: 0.
+  attn_type: space_through_time
 DATASET:
-  NAME: BSNIP
-  SAMPLE_SIZE: 1000
-  IMAGE_SIZE: [53, 63, 52, 490]
+  dataset_name: BSNIP
+  image_size: [53, 63, 52, 100]
+  min_max_scale: [-1,1]
+  imbalanced_flag: False
+  n_timepoint: 100
+  normalization_dim: 1
+  transform: True
+  task: Recognition
 TRAIN:
-  EPOCHS: 200
-  EARLY_STOP: True
-  WARMUP_EPOCHS: 10
-  BASE_LR: 1e-4
-  WARMUP_LR: 3e-7
-  MIN_LR: 5e-6
-  WEIGHT_DECAY: 0.01
-  BATCH_SIZE: 5
-  WORKERS: 5
-  LOSS: Accuracy
+  epochs: 1000
+  early_stop: True
+  warmup_epochs: 10
+  base_lr: 1e-4
+  warmup_lr: 3e-7
+  min_lr: 5e-6
+  weight_decay: 0.01
+  batch_size: 5
+  workers: 5
+  loss: Accuracy
