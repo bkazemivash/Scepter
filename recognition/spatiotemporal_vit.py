@@ -7,7 +7,7 @@ space_through_time,  factorization strategy.
 import torch
 import torch.nn as nn
 from typing import Tuple, Union
-from ..tools.utils import get_num_patches
+from tools.utils import get_num_patches
 
 class PatchEmbed(nn.Module):
     """Split volume into patches.
@@ -158,7 +158,7 @@ class VisionTransformer(nn.Module):
                  attn_type='space_through_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
-        self.time_dim = n_timepoints 
+        self.time_dim = n_timepoints
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
                 patch_size=patch_size, 

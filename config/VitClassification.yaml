@@ -1,7 +1,7 @@
 EXPERIMENT:
-  tag: cls_spatiotemporal_ViT_space_through_time
-  name: ScepterRecognitionViT
-  edition: 2
+  tag: Recognition
+  name: cls_spatiotemporal_ViT_space_through_time
+  edition: 1
   type: ViT
   save_model: True
 MODEL:
@@ -10,7 +10,7 @@ MODEL:
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 12
+  depth: 1
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
@@ -21,7 +21,7 @@ DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   min_max_scale: [-1,1]
-  imbalanced_flag: False
+  imbalanced_flag: True
   n_timepoint: 100
   normalization_dim: 1
   transform: True
@@ -34,6 +34,6 @@ TRAIN:
   warmup_lr: 3e-7
   min_lr: 5e-6
   weight_decay: 0.01
-  batch_size: 5
-  workers: 5
-  loss: Accuracy
+  batch_size: 1
+  workers: 1
+  loss: CrossEntropy

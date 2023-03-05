@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Tuple, Union 
 from torch.utils.data.dataset import Dataset
 from torchvision import transforms
-from ..tools.utils import fmri_preprocess, to_index
+from tools.utils import fmri_preprocess, to_index
 
 def img_transform():
     """Implementation of callable transform function.

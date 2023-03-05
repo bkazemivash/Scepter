@@ -1,21 +1,26 @@
-import torch, logging, argparse, os, time
+import torch, logging, argparse, os, time, sys
+sys.path.append(os.path.dirname(__file__))
 
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CosineSimilarity
+from torch.nn import CrossEntropyLoss, CosineSimilarity
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
-from Scepter.recognition.spatiotemporal_vit import VisionTransformer
+from recognition.spatiotemporal_vit import VisionTransformer
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
-def criterion(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
-    cos = CosineSimilarity(dim=1, eps=1e-6)
-    pearson = cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-    return 1. - pearson
+def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition') -> torch.Tensor:
+    if task == 'Recognition':
+        entropy = CrossEntropyLoss(reduction='sum')
+        return entropy(x1, x2)
+    else:
+        cos = CosineSimilarity(dim=1, eps=1e-6)
+        pearson = cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
+        return 1. - pearson
 
 def main():
     parser = argparse.ArgumentParser(description='Training ViT recognition model')
@@ -41,10 +46,11 @@ def main():
     
     logging.info("Loading configuration data ...")
     conf = OmegaConf.load(args.config)
-    save_flag = bool(conf.EXPERIMENT.save_model)
+    save_flag = conf.EXPERIMENT.save_model
+    experiment_tag = conf.EXPERIMENT.tag
     checkpoints_directory = os.path.abspath(args.save_dir)
     mask_file_path = os.path.abspath(args.mask)
-    dataset_file = os.path.abspath(args.train_set)
+    dataset_file = os.path.abspath(args.dataset)
     logging.info("Loading subjects fMRI files and component maps")    
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
@@ -53,7 +59,7 @@ def main():
     data_pack['train'], data_pack['val'] = random_split(main_dataset, [.8, .2], generator=torch.Generator().manual_seed(70))
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
-    writer = SummaryWriter(comment=conf.EXPERIMENT.tag)
+    writer = SummaryWriter(comment=conf.EXPERIMENT.name)
     base_model = VisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
@@ -80,7 +86,7 @@ def main():
                 with torch.set_grad_enabled(phase == 'train'):
                     optimizer.zero_grad()
                     preds = base_model(inp)
-                    loss = criterion(label, preds)
+                    loss = criterion(preds, label, experiment_tag)
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
@@ -97,7 +103,7 @@ def main():
                         'state_dict': base_model.state_dict(),
                         'optimizer': optimizer.state_dict(),
                         'loss': phase_error,
-                        'tag': conf.EXPERIMENT.tag}, 
+                        'edition': conf.EXPERIMENT.edition}, 
                         os.path.join(checkpoints_directory, 'checkpoint_{}_{}.pth'.format(epoch, time.strftime("%m%d%y_%H%M%S"))))
     
     writer.flush()
