@@ -15,7 +15,7 @@ from omegaconf import OmegaConf
 
 def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition') -> torch.Tensor:
     if task == 'Recognition':
-        entropy = CrossEntropyLoss(reduction='sum')
+        entropy = CrossEntropyLoss()
         return entropy(x1, x2)
     else:
         cos = CosineSimilarity(dim=1, eps=1e-6)
@@ -69,7 +69,7 @@ def main():
         base_model = base_model.cuda()
     optimizer = torch.optim.Adam(base_model.parameters(), lr=float(conf.TRAIN.base_lr))
     scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=float(conf.TRAIN.weight_decay))
-    best_loss = 1.
+    best_loss = 2.
     logging.info(f"Optimizer: Adam , Criterion: Cross entropy loss , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
     num_epochs = int(conf.TRAIN.epochs)
     phase_error = {'train': 1., 'val': 1.}    
@@ -96,7 +96,7 @@ def main():
             epoch_loss = running_loss / len(data_pack[phase])
             phase_error[phase] = epoch_loss
         logging.info("Epoch {}/{} - Train Loss: {:.10f} and Validation Loss: {:.10f}".format(epoch+1, num_epochs, phase_error['train'], phase_error['val']))
-        writer.add_scalar("Loss", {'train': phase_error['train'], 'validation': phase_error['val']}, epoch)
+        writer.add_scalars("Loss", {'train': phase_error['train'], 'validation': phase_error['val']}, epoch)
         if phase == 'val' and epoch_loss < best_loss and save_flag:
             best_loss = epoch_loss
             torch.save({'epoch': epoch,

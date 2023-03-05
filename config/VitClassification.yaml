@@ -1,11 +1,11 @@
 EXPERIMENT:
   tag: Recognition
-  name: cls_spatiotemporal_ViT_space_through_time
+  name: cls_ViT_space_through_time
   edition: 1
   type: ViT
   save_model: True
 MODEL:
-  img_size: [1, 100, 53, 63, 52]
+  img_size: [1, 20, 53, 63, 52]
   patch_size: 7
   in_chans: 1
   n_classes: 3
@@ -19,10 +19,10 @@ MODEL:
   attn_type: space_through_time
 DATASET:
   dataset_name: BSNIP
-  image_size: [53, 63, 52, 100]
-  min_max_scale: [-1,1]
+  image_size: [53, 63, 52, 20]
+  min_max_scale: [1,255]
   imbalanced_flag: True
-  n_timepoint: 100
+  n_timepoint: 20
   normalization_dim: 1
   transform: True
   task: Recognition
@@ -35,5 +35,5 @@ TRAIN:
   min_lr: 5e-6
   weight_decay: 0.01
   batch_size: 1
-  workers: 1
+  workers: 0
   loss: CrossEntropy

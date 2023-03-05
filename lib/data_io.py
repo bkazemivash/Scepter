@@ -86,8 +86,7 @@ class ScepterViTDataset(Dataset):
         """                
         assert self.class_dict !=  None, ValueError('Class labels are not defined!')
         status = self.info_dataframe.iloc[sample_idx].Diagnosis
-        status_idx = torch.tensor(self.class_dict[status], dtype=torch.int64)
-        return F.one_hot(status_idx, num_classes=len(self.class_dict))
+        return torch.tensor(self.class_dict[status]).long()
 
     def __len__(self):
         return len(self.info_dataframe)
