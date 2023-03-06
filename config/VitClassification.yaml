@@ -10,7 +10,7 @@ MODEL:
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 1
+  depth: 2
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
@@ -37,10 +37,10 @@ TRAIN:
   weight_decay: 0.01
   batch_size: 2
   workers: 2
-  step_lr: 100
+  step_lr: 40
   loss: CrossEntropy
 TEST:
-  test_size: 4
+  test_size: 2
   test_workers: 0
   shuffling: True
   metric: Accuracy

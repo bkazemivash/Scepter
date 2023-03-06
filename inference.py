@@ -74,17 +74,15 @@ def main():
     logging.info('Changing model status to evaluation.')
     pretrained_mdl.eval()
     running_metric = 0.0
-    for batch_index, data in enumerate(dataloader, 0):
-        inp, label = data
+    for inp, label in dataloader:
         inp = inp.to(dev, non_blocking=True)
         label = label.to(dev, non_blocking=True)
         with torch.set_grad_enabled(False):
             preds = pretrained_mdl(inp)
             metric = criterion(preds, label, experiment_tag)
-            logging.info(f'Evaluation on batch_{batch_index} - {conf.TEST.metric} : {metric}')
             running_metric += metric.item()      
     averaged_metric = running_metric / len(main_dataset.info_dataframe)
-    logging.info(f'Evaluation on average ::: {conf.TEST.metric} : {averaged_metric}')
+    logging.info(f'Evaluation on averaged metric ::::: {conf.TEST.metric} : {averaged_metric}')
 
 
 if __name__ == "__main__":
