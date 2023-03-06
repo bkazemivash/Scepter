@@ -43,11 +43,11 @@ class ScepterViTDataset(Dataset):
                  mask_file: str,
                  image_size: Tuple[int,...],
                  min_max_scale: Union[None, Tuple[int, int]] = None,
-                 imbalanced_flag=False,
-                 n_timepoint= 100,
-                 sampling_rate=1,
+                 imbalanced_flag = False,
+                 n_timepoint = 100,
+                 sampling_rate = 1,
                  normalization_dim: Union[None, int] = 1,
-                 transform=False,
+                 transform = False,
                  task='Recognition'):
         self.info_dataframe = pd.read_pickle(image_list_file)
         self.dataset_name = dataset_name
