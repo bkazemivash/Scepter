@@ -5,7 +5,7 @@ EXPERIMENT:
   type: ViT
   save_model: True
 MODEL:
-  img_size: [1, 20, 53, 63, 52]
+  img_size: [1, 25, 53, 63, 52]
   patch_size: 7
   in_chans: 1
   n_classes: 3
@@ -19,10 +19,11 @@ MODEL:
   attn_type: space_through_time
 DATASET:
   dataset_name: BSNIP
-  image_size: [53, 63, 52, 20]
+  image_size: [53, 63, 52, 25]
   min_max_scale: [1,255]
   imbalanced_flag: True
-  n_timepoint: 20
+  n_timepoint: 25
+  sampling_rate: 4
   normalization_dim: 1
   transform: True
   task: Recognition
@@ -30,10 +31,11 @@ TRAIN:
   epochs: 1000
   early_stop: True
   warmup_epochs: 10
-  base_lr: 1e-4
+  base_lr: 1e-2
   warmup_lr: 3e-7
   min_lr: 5e-6
   weight_decay: 0.01
   batch_size: 1
   workers: 0
+  step_lr: 100
   loss: CrossEntropy

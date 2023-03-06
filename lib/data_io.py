@@ -32,6 +32,7 @@ class ScepterViTDataset(Dataset):
         min_max_scale (Union[None, Tuple[int, int]], optional): If not None, set lower and upper bound of scaling. Defaults to None.
         imbalanced_flag (bool, optional): True if dataset is imbalanced otherwise False. Defaults to False.
         n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
+        sampling_rate (int, optional): Sampling rate of timepoints. Defaults to 1.
         normalization_dim (int, optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
         task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
@@ -44,6 +45,7 @@ class ScepterViTDataset(Dataset):
                  min_max_scale: Union[None, Tuple[int, int]] = None,
                  imbalanced_flag=False,
                  n_timepoint= 100,
+                 sampling_rate=1,
                  normalization_dim: Union[None, int] = 1,
                  transform=False,
                  task='Recognition'):
@@ -54,6 +56,7 @@ class ScepterViTDataset(Dataset):
         self.scaling = min_max_scale
         self.imbalanced_weights = compute_class_weights(self.info_dataframe.Diagnosis) if imbalanced_flag else None
         self.time_bound = n_timepoint
+        self.sampling_rate = sampling_rate
         self.norm_dim = normalization_dim
         self.transform = img_transform() if transform else None 
         self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if task == 'Recognition' else None
@@ -72,7 +75,8 @@ class ScepterViTDataset(Dataset):
                               mask_img=self.mask_img,
                               norm_dim=self.norm_dim,
                               scale=self.scaling,
-                              time_slice=self.time_bound)
+                              time_slice=self.time_bound,
+                              step_size=self.sampling_rate)
         return torch.from_numpy(img).float()
 
     def _load_label(self, sample_idx: int) -> torch.Tensor:

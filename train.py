@@ -83,7 +83,7 @@ def main():
     if torch.cuda.is_available():
         base_model = base_model.cuda()
     optimizer = torch.optim.Adam(base_model.parameters(), lr=float(conf.TRAIN.base_lr))
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=float(conf.TRAIN.weight_decay))
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=int(conf.TRAIN.step_lr), gamma=float(conf.TRAIN.weight_decay))
     best_loss = 2.
     logging.info(f"Optimizer: Adam , Criterion: Cross entropy loss , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
     num_epochs = int(conf.TRAIN.epochs)
@@ -101,7 +101,7 @@ def main():
                 with torch.set_grad_enabled(phase == 'train'):
                     optimizer.zero_grad()
                     preds = base_model(inp)
-                    loss = criterion(preds, label, experiment_tag)
+                    loss = criterion(preds, label, experiment_tag, main_dataset.imbalanced_weights)
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()

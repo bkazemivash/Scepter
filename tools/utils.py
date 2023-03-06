@@ -93,7 +93,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     mask_img: str,
                     norm_dim: Union[None, int] = None,
                     scale: Union[None, Tuple[int, int]] = None,
-                    time_slice =0) -> np.ndarray:
+                    time_slice =0,
+                    step_size=1) -> np.ndarray:
     """ Mask, z-score, and scale input fMRI image.
 
     Args:
@@ -102,6 +103,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         norm_dim (Union[None, int], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI). Defaults to None.
         scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
+        step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
 
     Raises:
         TypeError: If 'inp_img' is not a Niimg-like object
@@ -111,8 +113,9 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
+    totall_timepoints = time_slice * step_size
     if time_slice > 0:
-        inp_img = index_img(inp_img, slice(0, time_slice, 4)) # type: ignore    
+        inp_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data = apply_mask(inp_img, mask_img)
     if norm_dim is not None:
         data = normalize_array(data, ax=norm_dim)
