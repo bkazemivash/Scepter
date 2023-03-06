@@ -13,9 +13,20 @@ from recognition.spatiotemporal_vit import VisionTransformer
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
-def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition') -> torch.Tensor:
+def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition', sample_weight=None) -> torch.Tensor:
+    """Computes loss value based on the defined task.
+
+    Args:
+        x1 (torch.Tensor): Output of the model.
+        x2 (torch.Tensor): Target value.
+        task (str, optional): Type of experiment ['Recognition', 'DensePrediction']. Defaults to 'Recognition'.
+        sample_weight (torch.Tensor, optional): Class weights in case of imbalanced dataset. Defaults to None.
+
+    Returns:
+        torch.Tensor: Loss value of given tensors.
+    """ 
     if task == 'Recognition':
-        entropy = CrossEntropyLoss()
+        entropy = CrossEntropyLoss(weight=sample_weight)
         return entropy(x1, x2)
     else:
         cos = CosineSimilarity(dim=1, eps=1e-6)
@@ -28,6 +39,7 @@ def main():
     parser.add_argument('-m', '--mask', required=True, help='Path to the mask file')  
     parser.add_argument('-t', '--dataset', required=True, help='Path to pandas dataframe that keeps list of images')    
     parser.add_argument('-s', '--save_dir', required=True, help='Path to save checkpoint')  
+    parser.add_argument('-l', '--log_dir', required=True, help='Path to save logfile')  
     args = parser.parse_args()
     
     logging.root.setLevel(logging.NOTSET)
@@ -43,6 +55,8 @@ def main():
         raise FileNotFoundError(f"DataTable: file not found: {args.dataset}") 
     if not (os.path.exists(args.save_dir)):
         raise FileNotFoundError(f"Save directory does not exist, {args.save_dir}")  
+    if not (os.path.exists(args.log_dir)):
+        raise FileNotFoundError(f"Log directory does not exist, {args.log_dir}")  
     
     logging.info("Loading configuration data ...")
     conf = OmegaConf.load(args.config)
@@ -51,6 +65,7 @@ def main():
     checkpoints_directory = os.path.abspath(args.save_dir)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.dataset)
+    log_directory = os.path.abspath(args.log_dir)
     logging.info("Loading subjects fMRI files and component maps")    
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
@@ -59,7 +74,7 @@ def main():
     data_pack['train'], data_pack['val'] = random_split(main_dataset, [.8, .2], generator=torch.Generator().manual_seed(70))
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
-    writer = SummaryWriter(comment=conf.EXPERIMENT.name)
+    writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
     base_model = VisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
@@ -72,7 +87,7 @@ def main():
     best_loss = 2.
     logging.info(f"Optimizer: Adam , Criterion: Cross entropy loss , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
     num_epochs = int(conf.TRAIN.epochs)
-    phase_error = {'train': 1., 'val': 1.}    
+    phase_error = {'train': 2., 'val': 2.}    
     for epoch in range(num_epochs):
         for phase in ['train', 'val']:
             if phase == 'train':

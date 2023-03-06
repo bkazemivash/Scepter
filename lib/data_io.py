@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Tuple, Union 
 from torch.utils.data.dataset import Dataset
 from torchvision import transforms
-from tools.utils import fmri_preprocess, to_index
+from tools.utils import fmri_preprocess, to_index, compute_class_weights
 
 def img_transform():
     """Implementation of callable transform function.
@@ -52,7 +52,7 @@ class ScepterViTDataset(Dataset):
         self.mask_img = mask_file
         self.image_size = image_size
         self.scaling = min_max_scale
-        self.imbalanced = imbalanced_flag
+        self.imbalanced_weights = compute_class_weights(self.info_dataframe.Diagnosis) if imbalanced_flag else None
         self.time_bound = n_timepoint
         self.norm_dim = normalization_dim
         self.transform = img_transform() if transform else None 
@@ -76,17 +76,17 @@ class ScepterViTDataset(Dataset):
         return torch.from_numpy(img).float()
 
     def _load_label(self, sample_idx: int) -> torch.Tensor:
-        """Load label of each sample and convert to one-hot encoding.
+        """Load label of each sample and convert to a tensor.
 
         Args:
             sample_idx (int): Index of a subject in dataset.
 
         Returns:
-            torch.Tensor: one-hot encoding of relevent label.
+            torch.Tensor: Index of relevent class.
         """                
         assert self.class_dict !=  None, ValueError('Class labels are not defined!')
         status = self.info_dataframe.iloc[sample_idx].Diagnosis
-        return torch.tensor(self.class_dict[status]).long()
+        return torch.tensor(self.class_dict[status], dtype=torch.long)
 
     def __len__(self):
         return len(self.info_dataframe)

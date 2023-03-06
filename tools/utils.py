@@ -6,8 +6,9 @@ postprocessing steps on input fMRI images.
 
 import numpy as np
 import operator
+import torch
 import torch.nn as nn
-from typing import Tuple, Union, Dict
+from typing import Tuple, Union, Dict, Any
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img
 from nibabel.nifti1 import Nifti1Image
@@ -111,7 +112,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
     if time_slice > 0:
-        inp_img = index_img(inp_img, slice(0, time_slice)) # type: ignore    
+        inp_img = index_img(inp_img, slice(0, time_slice, 4)) # type: ignore    
     data = apply_mask(inp_img, mask_img)
     if norm_dim is not None:
         data = normalize_array(data, ax=norm_dim)
@@ -133,7 +134,7 @@ def get_n_params(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
 
-def assert_tensors_equal(t1, t2) -> None:
+def assert_tensors_equal(t1: torch.Tensor, t2: torch.Tensor) -> None:
     """ Sanity check: Raises an AssertionError if two tensors
         are not equal.
 
@@ -155,3 +156,16 @@ def to_index(class_labels: np.ndarray) -> Dict:
     """    
     label_index_dict = {label: index for index, label in enumerate(class_labels)}
     return label_index_dict
+
+def compute_class_weights(x: Any) -> torch.Tensor:
+    """Compute class weights in an imbalanced dataset
+
+    Args:
+        x (Any): Array-like object including classes 
+
+    Returns:
+        torch.Tensor: Class weight tensor
+    """    
+    class_count = np.unique(x, return_counts=True)[1]
+    weights = 1. / class_count
+    return torch.tensor(weights, dtype=torch.float)
