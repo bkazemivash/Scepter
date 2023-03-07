@@ -1,19 +1,19 @@
 """
 Implementation of spatiotemporal Vision Transfor (ViT) classifier with 
-space_through_time,  factorization strategy.
+space-time,  factorization strategy.
 """
 
 
 import torch
 import torch.nn as nn
 from typing import Tuple, Union
-from ..tools.utils import get_num_patches
+from tools.utils import get_num_patches
 
 class PatchEmbed(nn.Module):
     """Split volume into patches.
 
     Args:
-        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)
+        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)e volume (3D volume)
         patch_size (int): Size of the patch
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
@@ -30,8 +30,6 @@ class PatchEmbed(nn.Module):
                 stride=patch_size,)
 
     def forward(self, x):
-        b, c, t, i, j, z = x.shape
-        x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)
         x = self.proj(x)
         x = x.flatten(2).transpose(1, 2)
         return x
@@ -139,7 +137,7 @@ class VisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
     Args:
-        img_size (int): Size of the image (Max dim if not square) Defaults to 384.
+        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)
         patch_size (int, optional): Size of the patch. Defaults to 16.
         in_chans (int, optional): Number of channels. Defaults to 3.
         n_classes (int, optional): Number of classes. Defaults to 1000.
@@ -150,15 +148,15 @@ class VisionTransformer(nn.Module):
         qkv_bias (bool, optional): Enable bias. Defaults to True.
         p (float, optional): Drop out ratio of ViT. Defaults to 0.
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
-        attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_through_time'
+        attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size=(53, 63, 52), patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
-                 attn_type='space_through_time', n_timepoints=490) -> None:
+                 attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
-        self.time_dim = n_timepoints 
+        self.time_dim = n_timepoints
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
                 patch_size=patch_size, 
@@ -185,8 +183,10 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, n_classes)
 
     def forward(self, x):
-        x = self.patch_embed(x)
-        if self.attention_type == 'space_through_time':
+        b, c, t, i, j, z = x.shape
+        if self.attention_type == 'space_time':
+            x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
+            x = self.patch_embed(x)
             n_samples, n_time_by_patch, embbeding_dim = x.shape
             n_samples //= self.time_dim 
             n_time_by_patch *= self.time_dim

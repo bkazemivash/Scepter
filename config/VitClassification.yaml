@@ -1,6 +1,6 @@
 EXPERIMENT:
   tag: Recognition
-  name: cls_ViT_space_through_time
+  name: cls_ViT_space_time
   edition: 1
   type: ViT
   save_model: True
@@ -16,7 +16,7 @@ MODEL:
   qkv_bias: True
   p: 0.
   attn_p: 0.
-  attn_type: space_through_time
+  attn_type: space_time
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 25]
