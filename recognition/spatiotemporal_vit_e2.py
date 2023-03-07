@@ -31,7 +31,7 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         x = self.proj(x)
-        x = x.flatten(2).transpose(1, 2)
+        # x = x.flatten(2).transpose(1, 2)
         return x
 
 
@@ -191,6 +191,8 @@ class VisionTransformer(nn.Module):
             n_samples //= self.time_dim 
             n_time_by_patch *= self.time_dim
             x = torch.reshape(x, (n_samples, n_time_by_patch, embbeding_dim))
+        elif self.attention_type == 'transformer_factorization':
+            x = x.reshape(b, c, t * i, j, z)
 
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
