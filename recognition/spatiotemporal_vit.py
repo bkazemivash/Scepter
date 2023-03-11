@@ -1,6 +1,6 @@
 """
 Implementation of spatiotemporal Vision Transfor (ViT) classifier with 
-space_through_time,  factorization strategy.
+space_time,  factorization strategy.
 """
 
 
@@ -150,12 +150,12 @@ class VisionTransformer(nn.Module):
         qkv_bias (bool, optional): Enable bias. Defaults to True.
         p (float, optional): Drop out ratio of ViT. Defaults to 0.
         attn_p (float, optional): Dropo ut ratio of attention heads. Defaults to 0.
-        attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_through_time'
+        attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
     def __init__(self, img_size, patch_size=7, in_chans=1, n_classes=1000, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
-                 attn_type='space_through_time', n_timepoints=490) -> None:
+                 attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
         self.time_dim = n_timepoints
@@ -186,7 +186,7 @@ class VisionTransformer(nn.Module):
 
     def forward(self, x):
         x = self.patch_embed(x)
-        if self.attention_type == 'space_through_time':
+        if self.attention_type == 'space_time':
             n_samples, n_time_by_patch, embbeding_dim = x.shape
             n_samples //= self.time_dim 
             n_time_by_patch *= self.time_dim
