@@ -31,7 +31,7 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x):
         x = self.proj(x)
-        # x = x.flatten(2).transpose(1, 2)
+        x = x.flatten(2).transpose(1, 2)
         return x
 
 
@@ -133,7 +133,7 @@ class EncoderBlock(nn.Module):
         return x
     
 
-class VisionTransformer(nn.Module):
+class ScepterVisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
     Args:
@@ -178,6 +178,21 @@ class VisionTransformer(nn.Module):
                 for _ in range(depth)
             ]
         )
+        if attn_type == 'transformer_factorization':
+            self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
+            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))            
+            self.temporal_blocks = nn.ModuleList(
+                [
+                    EncoderBlock(
+                        dim=embed_dim, 
+                        n_heads=n_heads, 
+                        mlp_ratio=mlp_ratio, 
+                        qkv_bias=qkv_bias, 
+                        p=p, 
+                        attn_p=attn_p,)
+                    for _ in range(depth)
+                ]
+            )
 
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, n_classes)
@@ -187,12 +202,14 @@ class VisionTransformer(nn.Module):
         if self.attention_type == 'space_time':
             x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
             x = self.patch_embed(x)
-            n_samples, n_time_by_patch, embbeding_dim = x.shape
+            n_samples, n_patch, embbeding_dim = x.shape
             n_samples //= self.time_dim 
-            n_time_by_patch *= self.time_dim
-            x = torch.reshape(x, (n_samples, n_time_by_patch, embbeding_dim))
+            n_patch *= self.time_dim
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))
         elif self.attention_type == 'transformer_factorization':
-            x = x.reshape(b, c, t * i, j, z)
+            x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
+            x = self.patch_embed(x)
+            n_samples, n_patch, embbeding_dim = x.shape
 
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
