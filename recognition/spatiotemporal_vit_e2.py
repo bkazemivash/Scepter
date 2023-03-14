@@ -13,7 +13,7 @@ class PatchEmbed(nn.Module):
     """Split volume into patches.
 
     Args:
-        img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)e volume (3D volume)
+        img_size (Tuple[int, ...]): Size of the image (3D volume)
         patch_size (int): Size of the patch
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
@@ -163,7 +163,9 @@ class ScepterVisionTransformer(nn.Module):
                 in_chans=in_chans, 
                 embed_dim=embed_dim,)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
+        if attn_type == 'space_time':
+            self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
         self.pos_drop = nn.Dropout(p)
         self.attn_type = attn_p
         self.spatial_blocks = nn.ModuleList(
@@ -199,17 +201,13 @@ class ScepterVisionTransformer(nn.Module):
 
     def forward(self, x):
         b, c, t, i, j, z = x.shape
+        x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
+        x = self.patch_embed(x)
+        n_samples, n_patch, embbeding_dim = x.shape        
         if self.attention_type == 'space_time':
-            x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
-            x = self.patch_embed(x)
-            n_samples, n_patch, embbeding_dim = x.shape
             n_samples //= self.time_dim 
             n_patch *= self.time_dim
             x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))
-        elif self.attention_type == 'transformer_factorization':
-            x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
-            x = self.patch_embed(x)
-            n_samples, n_patch, embbeding_dim = x.shape
 
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
@@ -219,6 +217,9 @@ class ScepterVisionTransformer(nn.Module):
         for block in self.spatial_blocks:
             x = block(x)
         
+        if self.attention_type == 'transformer_factorization': 
+            x=x[:,0]
+
         x = self.norm(x)
         cls_token_final = x[:, 0]
         x = self.head(cls_token_final)
