@@ -182,19 +182,14 @@ class ScepterVisionTransformer(nn.Module):
         )
         if attn_type == 'transformer_factorization':
             self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
-            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))            
-            self.temporal_blocks = nn.ModuleList(
-                [
-                    EncoderBlock(
-                        dim=embed_dim, 
-                        n_heads=n_heads, 
-                        mlp_ratio=mlp_ratio, 
-                        qkv_bias=qkv_bias, 
-                        p=p, 
-                        attn_p=attn_p,)
-                    for _ in range(depth)
-                ]
-            )
+            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.time_dim, embed_dim))            
+            self.temporal_encoder = EncoderBlock(
+                                        dim=embed_dim, 
+                                        n_heads=n_heads, 
+                                        mlp_ratio=mlp_ratio, 
+                                        qkv_bias=qkv_bias, 
+                                        p=p, 
+                                        attn_p=attn_p,)
 
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, n_classes)
@@ -212,13 +207,20 @@ class ScepterVisionTransformer(nn.Module):
         cls_token = self.cls_token.expand(n_samples, -1, -1)
         x = torch.cat((cls_token, x), dim=1)
         x = x + self.pos_embed
-        x = self.pos_drop(x)
-        
+        x = self.pos_drop(x)        
         for block in self.spatial_blocks:
             x = block(x)
         
         if self.attention_type == 'transformer_factorization': 
-            x=x[:,0]
+            x = x[:, 0]
+            n_samples //= self.time_dim
+            n_patch = self.time_dim
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))
+            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
+            x = torch.cat((cls_token_temporal, x), dim=1)
+            x = x + self.pos_embed_temporal
+            x = self.pos_drop(x)        
+            x = self.temporal_blocks(x)
 
         x = self.norm(x)
         cls_token_final = x[:, 0]
