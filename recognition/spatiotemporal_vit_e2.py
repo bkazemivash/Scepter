@@ -220,7 +220,9 @@ class ScepterVisionTransformer(nn.Module):
             x = torch.cat((cls_token_temporal, x), dim=1)
             x = x + self.pos_embed_temporal
             x = self.pos_drop(x)        
-            x = self.temporal_blocks(x)
+            x = self.temporal_encoder(x)
+        elif self.attention_type == 'attention_factorization':
+            x = x[:, 0]
 
         x = self.norm(x)
         cls_token_final = x[:, 0]
