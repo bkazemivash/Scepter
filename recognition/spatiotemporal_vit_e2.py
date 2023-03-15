@@ -1,6 +1,7 @@
 """
 Implementation of spatiotemporal Vision Transfor (ViT) classifier with 
-space-time,  factorization strategy.
+space-time, encoder factorization, joint factorization, and factorized 
+dot product strategy.
 """
 
 
@@ -180,7 +181,7 @@ class ScepterVisionTransformer(nn.Module):
                 for _ in range(depth)
             ]
         )
-        if attn_type == 'transformer_factorization':
+        if attn_type == 'encoder_factorization':
             self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
             self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.time_dim, embed_dim))            
             self.temporal_encoder = EncoderBlock(
@@ -211,7 +212,7 @@ class ScepterVisionTransformer(nn.Module):
         for block in self.spatial_blocks:
             x = block(x)
         
-        if self.attention_type == 'transformer_factorization': 
+        if self.attention_type == 'encoder_factorization': 
             x = x[:, 0]
             n_samples //= self.time_dim
             n_patch = self.time_dim
@@ -221,7 +222,7 @@ class ScepterVisionTransformer(nn.Module):
             x = x + self.pos_embed_temporal
             x = self.pos_drop(x)        
             x = self.temporal_encoder(x)
-        elif self.attention_type == 'attention_factorization':
+        elif self.attention_type == 'joint_factorization':
             x = x[:, 0]
 
         x = self.norm(x)
