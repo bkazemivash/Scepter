@@ -40,7 +40,7 @@ TRAIN:
   step_lr: 40
   loss: CrossEntropy
 TEST:
-  test_size: 2
+  test_size: 1
   test_workers: 0
-  shuffling: True
-  metric: Accuracy
+  shuffling: False
+  metric: Confusion_Matrix

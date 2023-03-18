@@ -171,4 +171,5 @@ def compute_class_weights(x: Any) -> torch.Tensor:
     """    
     class_count = np.unique(x, return_counts=True)[1]
     weights = 1. / class_count
+    weights = np.asarray([.1, .45, .45])
     return torch.tensor(weights, dtype=torch.float)

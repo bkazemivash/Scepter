@@ -2,30 +2,36 @@ import torch, logging, argparse, os, time, sys
 sys.path.append(os.path.dirname(__file__))
 
 import torch
-from torch.nn import CosineSimilarity
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 from lib.data_io import ScepterViTDataset
+from lib.summary_metrics import *
 from recognition.spatiotemporal_vit import VisionTransformer
 
-def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition') -> torch.Tensor:
+def criterion(x1: torch.Tensor, x2: torch.Tensor, 
+              evalution='Confusion_Matrix', **kwargs) -> torch.Tensor:
     """Computes evaluation metrics on input tensors for the defined task.
 
     Args:
         x1 (torch.Tensor): Output of the model.
         x2 (torch.Tensor): Target value.
-        task (str, optional): Type of experiment ['Recognition', 'DensePrediction']. Defaults to 'Recognition'.
+        evalution (str, optional): Type of evaluation. Defaults to 'Confusion_Matrix'.
+        **kwargs: Arbitrary keyword arguments mandatory for evaluation.
+
+    Raises:
+        ValueError: If evaluation method is not defined.
 
     Returns:
         torch.Tensor: Evaluation of given tensors.
-    """ 
-    if task == 'Recognition':
-        _,target = x1.topk(1, dim=1)
-        return torch.sum(target == x2)
+    """
+    if evalution == 'Accuracy':
+       return compute_accuracy(x1, x2)
+    elif evalution == 'Correlation':
+        return compute_correlation(x1, x2)
+    elif evalution == 'Confusion_Matrix':
+        return compute_confusion_matrix(x1, x2, n_cls=kwargs['nb_classes'])
     else:
-        cos = CosineSimilarity(dim=1, eps=1e-6)
-        pearson = cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-        return 1. - pearson
+        raise ValueError('Evalution metric is not defined.')
 
 
 def main():
@@ -49,16 +55,18 @@ def main():
     if not (os.path.exists(args.testset)):
         raise FileNotFoundError(f"DataTable: file not found: {args.testset}") 
     if not (os.path.exists(args.pretrained_model)):
-        raise FileNotFoundError(f"Save directory does not exist, {args.pretrained_model}")
+        raise FileNotFoundError(f"pre-train model: file not found: {args.pretrained_model}")
     if not (os.path.exists(args.save_dir)):
         raise FileNotFoundError(f"Save directory does not exist, {args.save_dir}")
     
     logging.info("Loading configuration data ...")
+    torch.manual_seed(712)
     conf = OmegaConf.load(args.config)
     checkpoint = torch.load(args.pretrained_model)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.testset)
-    experiment_tag = conf.EXPERIMENT.tag
+    metric_ = conf.TEST.metric
+    experiment_flag = conf.EXPERIMENT.tag
     logging.info("Loading test dataset for evaluating pretrained model.")
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
@@ -67,23 +75,36 @@ def main():
     logging.info("Loading model and optimizer parameters.")
     pretrained_mdl = VisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
     if torch.cuda.is_available():
-        pretrained_mdl = pretrained_mdl.cuda()    
-    optimizer = torch.optim.Adam(pretrained_mdl.parameters())
-    pretrained_mdl.load_state_dict(checkpoint['state_dict'], strict=False)
-    optimizer.load_state_dict(checkpoint['optimizer'])
+        pretrained_mdl = pretrained_mdl.cuda()
+        pretrained_mdl = nn.DataParallel(pretrained_mdl)    
+    # optimizer = torch.optim.Adam(pretrained_mdl.parameters())
+    pretrained_mdl.load_state_dict(checkpoint['state_dict'], strict=True)
+    # optimizer.load_state_dict(checkpoint['optimizer'])
     logging.info('Changing model status to evaluation.')
     pretrained_mdl.eval()
-    running_metric = 0.0
+    params_ = {}
+    if main_dataset.class_dict:
+        logging.info(f'Class name : {main_dataset.class_dict} and class weights {main_dataset.imbalanced_weights}')
+        nb_classes = len(main_dataset.class_dict)
+        running_metric = torch.zeros(nb_classes, nb_classes)
+        params_ = {'nb_classes': nb_classes}
+    else:
+        running_metric = 0.0
+
     for inp, label in dataloader:
         inp = inp.to(dev, non_blocking=True)
         label = label.to(dev, non_blocking=True)
         with torch.set_grad_enabled(False):
             preds = pretrained_mdl(inp)
-            metric = criterion(preds, label, experiment_tag)
-            running_metric += metric.item()      
-    averaged_metric = running_metric / len(main_dataset.info_dataframe)
-    logging.info(f'Evaluation on averaged metric ::::: {conf.TEST.metric} : {averaged_metric}')
-
+            running_metric += criterion(preds, label, metric_, **params_)
+            # acc_ = criterion(preds, label, metric_, **params_)
+            # running_metric += acc_.item()
+    logging.info(f'Evaluation is done on metric {metric_}')
+    print(running_metric)
+    print(f'test size is {main_dataset.info_dataframe.shape[0]}')
+    # running_metric /= main_dataset.info_dataframe.shape[0]
+    print(running_metric.diag()/running_metric.sum(1))  # type: ignore
+    print(running_metric)
 
 if __name__ == "__main__":
     main()
