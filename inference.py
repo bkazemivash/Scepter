@@ -1,7 +1,6 @@
 import torch, logging, argparse, os, time, sys
 sys.path.append(os.path.dirname(__file__))
 
-import torch
 from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 from lib.data_io import ScepterViTDataset
@@ -66,7 +65,6 @@ def main():
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.testset)
     metric_ = conf.TEST.metric
-    experiment_flag = conf.EXPERIMENT.tag
     logging.info("Loading test dataset for evaluating pretrained model.")
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
@@ -76,12 +74,9 @@ def main():
     pretrained_mdl = VisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
     if torch.cuda.is_available():
         pretrained_mdl = pretrained_mdl.cuda()
-        pretrained_mdl = nn.DataParallel(pretrained_mdl)    
-    # optimizer = torch.optim.Adam(pretrained_mdl.parameters())
+        pretrained_mdl = nn.DataParallel(pretrained_mdl)
+        logging.info("DataParallel mode activated.") 
     pretrained_mdl.load_state_dict(checkpoint['state_dict'], strict=True)
-    # optimizer.load_state_dict(checkpoint['optimizer'])
-    logging.info('Changing model status to evaluation.')
-    pretrained_mdl.eval()
     params_ = {}
     if main_dataset.class_dict:
         logging.info(f'Class name : {main_dataset.class_dict} and class weights {main_dataset.imbalanced_weights}')
@@ -90,6 +85,8 @@ def main():
         params_ = {'nb_classes': nb_classes}
     else:
         running_metric = 0.0
+    logging.info('Changing model status to evaluation.')
+    pretrained_mdl.eval()
 
     for inp, label in dataloader:
         inp = inp.to(dev, non_blocking=True)
@@ -97,12 +94,10 @@ def main():
         with torch.set_grad_enabled(False):
             preds = pretrained_mdl(inp)
             running_metric += criterion(preds, label, metric_, **params_)
-            # acc_ = criterion(preds, label, metric_, **params_)
-            # running_metric += acc_.item()
+
     logging.info(f'Evaluation is done on metric {metric_}')
     print(running_metric)
     print(f'test size is {main_dataset.info_dataframe.shape[0]}')
-    # running_metric /= main_dataset.info_dataframe.shape[0]
     print(running_metric.diag()/running_metric.sum(1))  # type: ignore
     print(running_metric)
 

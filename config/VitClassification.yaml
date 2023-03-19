@@ -5,12 +5,12 @@ EXPERIMENT:
   type: ViT
   save_model: True
 MODEL:
-  img_size: [1, 25, 53, 63, 52]
+  img_size: [53, 63, 52]
   patch_size: 7
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 2
+  depth: 3
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
@@ -19,9 +19,9 @@ MODEL:
   attn_type: space_time
 DATASET:
   dataset_name: BSNIP
-  image_size: [53, 63, 52, 25]
+  image_size: [53, 63, 52, 100]
   min_max_scale: [1,255]
-  imbalanced_flag: True
+  imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4
   normalization_dim: 1
@@ -31,7 +31,7 @@ TRAIN:
   epochs: 1000
   early_stop: True
   warmup_epochs: 10
-  base_lr: 2e-2
+  base_lr: 1e-2
   warmup_lr: 5e-2
   min_lr: 5e-6
   weight_decay: 0.01

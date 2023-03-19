@@ -169,7 +169,6 @@ def compute_class_weights(x: Any) -> torch.Tensor:
     Returns:
         torch.Tensor: Class weight tensor
     """    
-    class_count = np.unique(x, return_counts=True)[1]
+    _, class_count = np.unique(x, return_counts=True)
     weights = 1. / class_count
-    weights = np.asarray([.1, .45, .45])
     return torch.tensor(weights, dtype=torch.float)
