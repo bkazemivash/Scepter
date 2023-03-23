@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from omegaconf import OmegaConf
 from lib.data_io import ScepterViTDataset
 from lib.summary_metrics import *
+from tools.visualization import *
 from recognition.spatiotemporal_vit import VisionTransformer
 
 def criterion(x1: torch.Tensor, x2: torch.Tensor, 
@@ -64,6 +65,7 @@ def main():
     checkpoint = torch.load(args.pretrained_model)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.testset)
+    saving_path = os.path.abspath(args.save_dir)
     metric_ = conf.TEST.metric
     logging.info("Loading test dataset for evaluating pretrained model.")
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
@@ -99,7 +101,10 @@ def main():
     print(running_metric)
     print(f'test size is {main_dataset.info_dataframe.shape[0]}')
     print(running_metric.diag()/running_metric.sum(1))  # type: ignore
-    print(running_metric)
+    logging.info(f'Plotting and saving summary metrics: {saving_path}')
+    if main_dataset.class_dict and isinstance(running_metric, torch.Tensor):
+        draw_confusion_matrix(running_metric, main_dataset.class_dict, saving_path)
+    logging.info('Inference is finished!')
 
 if __name__ == "__main__":
     main()

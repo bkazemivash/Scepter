@@ -70,8 +70,10 @@ def main():
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
                                      **conf.DATASET)
+    if main_dataset.class_dict:
+        logging.info(f'Class name = {main_dataset.class_dict}')
     if main_dataset.imbalanced_weights is not None:
-        logging.info(f'Class name : {main_dataset.class_dict} and class weights {main_dataset.imbalanced_weights}')
+        logging.info(f'Class weights = {main_dataset.imbalanced_weights}')
         main_dataset.imbalanced_weights = main_dataset.imbalanced_weights.to(dev, non_blocking=True)
     data_pack = {}
     data_pack['train'], data_pack['val'] = random_split(main_dataset, [.8, .2], generator=torch.Generator().manual_seed(70))

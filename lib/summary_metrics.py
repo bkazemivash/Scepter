@@ -34,6 +34,16 @@ def compute_correlation(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
 def compute_confusion_matrix(x1: torch.Tensor, 
                              x2: torch.Tensor, 
                              n_cls: int) -> torch.Tensor:
+    """Computing confusion matrix.
+
+    Args:
+        x1 (torch.Tensor): Predicted labels.
+        x2 (torch.Tensor): Ground truth labels.
+        n_cls (int): Number of classes.
+
+    Returns:
+        torch.Tensor: Confusion matrix for the given tensors.
+    """    
     confusion_matrix = torch.zeros(n_cls, n_cls)
     _,target = x1.topk(1, dim=1)  
     for t, p in zip(target.view(-1), x2.view(-1)):

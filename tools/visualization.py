@@ -1,5 +1,9 @@
 import numpy as np
-from typing import Tuple
+import seaborn as sns
+import matplotlib.pyplot as plt
+import torch, os
+from datetime import datetime
+from typing import Tuple, Dict, Union, Any
 from nibabel.nifti1 import Nifti1Image
 from nilearn import image
 from scipy import ndimage
@@ -26,3 +30,33 @@ def get_coordinates(inp_img: Nifti1Image, state=False) -> Tuple:
         data = np.abs(data)
     key_points = ndimage.maximum_position(data)
     return key_points, image.coord_transform(*key_points, inp_img.affine) # type: ignore
+
+def draw_confusion_matrix(inp_matrix: torch.Tensor, 
+                          cls_names: Dict, 
+                          save_dir: Union[None, str] = None) -> Any:
+    """Drawing confusion matrix.
+
+    Args:
+        inp_matrix (torch.Tensor): The given confusion matrix.
+        cls_names (Dict): Class names.
+        save_dir (Union[None, str], optional): If not None, save the figure. Defaults to None.
+
+    Returns:
+        Any: Returns a matplotlib figure.
+    """    
+    assert inp_matrix.shape == tuple((len(cls_names), len(cls_names))) , 'Invalid class names for the given confusion matrix'
+    data_ = inp_matrix.cpu().detach().numpy()
+    labels = list(cls_names.keys())
+    plt.figure(figsize=(6,6), dpi=100)
+    sns.set(font_scale = .8)
+    ax = sns.heatmap(data_, annot=True, fmt='', cmap='Blues')
+    ax.xaxis.set_ticklabels(labels)
+    ax.yaxis.set_ticklabels(labels)
+    ax.set_xlabel("Actual Diagnosis", fontsize=14, labelpad=20)
+    ax.set_ylabel("Predicted Diagnosis", fontsize=14, labelpad=20)
+    ax.set_title ("Confusion Matrix for the Brain Disease Detection Model", fontsize=14, pad=20)
+    fig = ax.get_figure()
+    if save_dir:
+        address_ = os.path.join(save_dir,'figures', f'ConfusionMatrix_{datetime.now().strftime("%y%m%d_%H%M%S")}.png')
+        fig.savefig(address_, bbox_inches="tight")
+    return fig

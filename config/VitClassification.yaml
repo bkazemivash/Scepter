@@ -15,7 +15,7 @@ MODEL:
   mlp_ratio: 4
   qkv_bias: True
   p: 0.
-  attn_p: 0.2
+  attn_p: 0.
   attn_type: space_time
 DATASET:
   dataset_name: BSNIP
