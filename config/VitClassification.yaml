@@ -14,8 +14,8 @@ MODEL:
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
-  p: 0.
-  attn_p: 0.
+  p: 0.2
+  attn_p: 0.3
   attn_type: space_time
 DATASET:
   dataset_name: BSNIP
@@ -28,16 +28,16 @@ DATASET:
   transform: True
   task: Recognition
 TRAIN:
-  epochs: 1000
+  epochs: 500
   early_stop: True
-  warmup_epochs: 10
   base_lr: 1e-5
-  warmup_lr: 5e-2
-  min_lr: 5e-6
-  weight_decay: 0.8
+  min_lr: 5e-8
+  weight_decay: 0.2
+  step_lr: 300
   batch_size: 2
   workers: 2
-  step_lr: 500
+  warmup_epochs: 5
+  warmup_lr: 1e-2
   loss: CrossEntropy
 TEST:
   test_size: 1

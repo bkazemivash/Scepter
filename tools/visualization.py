@@ -32,13 +32,15 @@ def get_coordinates(inp_img: Nifti1Image, state=False) -> Tuple:
     return key_points, image.coord_transform(*key_points, inp_img.affine) # type: ignore
 
 def draw_confusion_matrix(inp_matrix: torch.Tensor, 
-                          cls_names: Dict, 
+                          cls_names: Dict,
+                          show_percentage: bool = False,
                           save_dir: Union[None, str] = None) -> Any:
     """Drawing confusion matrix.
 
     Args:
         inp_matrix (torch.Tensor): The given confusion matrix.
         cls_names (Dict): Class names.
+        show_percentage (bool): Shows percentage of each class if True. Defaults to False.
         save_dir (Union[None, str], optional): If not None, save the figure. Defaults to None.
 
     Returns:
@@ -46,10 +48,12 @@ def draw_confusion_matrix(inp_matrix: torch.Tensor,
     """    
     assert inp_matrix.shape == tuple((len(cls_names), len(cls_names))) , 'Invalid class names for the given confusion matrix'
     data_ = inp_matrix.cpu().detach().numpy()
+    if show_percentage:
+        data_ /= np.sum(data_, axis=0)
     labels = list(cls_names.keys())
     plt.figure(figsize=(6,6), dpi=100)
     sns.set(font_scale = .8)
-    ax = sns.heatmap(data_, annot=True, fmt='', cmap='Blues')
+    ax = sns.heatmap(data_, annot=True, fmt='.3%', cmap='Blues')
     ax.xaxis.set_ticklabels(labels)
     ax.yaxis.set_ticklabels(labels)
     ax.set_xlabel("Actual Diagnosis", fontsize=14, labelpad=20)

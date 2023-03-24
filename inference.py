@@ -103,7 +103,9 @@ def main():
     print(running_metric.diag()/running_metric.sum(1))  # type: ignore
     logging.info(f'Plotting and saving summary metrics: {saving_path}')
     if main_dataset.class_dict and isinstance(running_metric, torch.Tensor):
-        draw_confusion_matrix(running_metric, main_dataset.class_dict, saving_path)
+        # TODO: Fix the inconsistensy between train/test classes
+        # main_dataset.class_dict = {'Normal-Control': 0, 'Schizophrenia': 1, 'Bipolar': 2}
+        draw_confusion_matrix(running_metric, main_dataset.class_dict, True, saving_path)
     logging.info('Inference is finished!')
 
 if __name__ == "__main__":

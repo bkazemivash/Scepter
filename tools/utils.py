@@ -8,7 +8,7 @@ import numpy as np
 import operator
 import torch
 import torch.nn as nn
-from typing import Tuple, Union, Dict, Any
+from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img
 from nibabel.nifti1 import Nifti1Image
@@ -148,7 +148,7 @@ def assert_tensors_equal(t1: torch.Tensor, t2: torch.Tensor) -> None:
     a1, a2 = t1.detach().numpy(), t2.detach().numpy()
     np.testing.assert_allclose(a1, a2)
 
-def to_index(class_labels: np.ndarray) -> Dict:
+def to_index(class_labels: List) -> Dict:
     """Make a dict with keys:labels to value: index
 
     Args:
@@ -157,6 +157,7 @@ def to_index(class_labels: np.ndarray) -> Dict:
     Returns:
         Dict: key, value : label, index
     """    
+    class_labels = sorted(class_labels)
     label_index_dict = {label: index for index, label in enumerate(class_labels)}
     return label_index_dict
 

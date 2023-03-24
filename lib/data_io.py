@@ -59,7 +59,7 @@ class ScepterViTDataset(Dataset):
         self.sampling_rate = sampling_rate
         self.norm_dim = normalization_dim
         self.transform = img_transform() if transform else None 
-        self.class_dict = to_index(self.info_dataframe.Diagnosis.unique()) if task == 'Recognition' else None
+        self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
         """Load and preprocess an fMRI image.
