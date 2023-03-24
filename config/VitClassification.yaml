@@ -32,7 +32,7 @@ TRAIN:
   early_stop: True
   base_lr: 1e-5
   min_lr: 5e-8
-  weight_decay: 0.2
+  weight_decay: 0.1
   step_lr: 300
   batch_size: 2
   workers: 2
