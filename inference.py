@@ -8,8 +8,10 @@ from lib.summary_metrics import *
 from tools.visualization import *
 from recognition.spatiotemporal_vit import VisionTransformer
 
-def criterion(x1: torch.Tensor, x2: torch.Tensor, 
-              evalution='Confusion_Matrix', **kwargs) -> torch.Tensor:
+def criterion(x1: torch.Tensor, 
+              x2: torch.Tensor, 
+              evalution='Confusion_Matrix', 
+              **kwargs) -> torch.Tensor:
     """Computes evaluation metrics on input tensors for the defined task.
 
     Args:
@@ -78,7 +80,7 @@ def main():
         pretrained_mdl = pretrained_mdl.cuda()
         pretrained_mdl = nn.DataParallel(pretrained_mdl)
         logging.info("DataParallel mode activated.") 
-    pretrained_mdl.load_state_dict(checkpoint['state_dict'], strict=True)
+    pretrained_mdl.load_state_dict(checkpoint['state_dict'], strict=False)
     params_ = {}
     if main_dataset.class_dict:
         logging.info(f'Class name : {main_dataset.class_dict} and class weights {main_dataset.imbalanced_weights}')
@@ -103,8 +105,6 @@ def main():
     print(running_metric.diag()/running_metric.sum(1))  # type: ignore
     logging.info(f'Plotting and saving summary metrics: {saving_path}')
     if main_dataset.class_dict and isinstance(running_metric, torch.Tensor):
-        # TODO: Fix the inconsistensy between train/test classes
-        # main_dataset.class_dict = {'Normal-Control': 0, 'Schizophrenia': 1, 'Bipolar': 2}
         draw_confusion_matrix(running_metric, main_dataset.class_dict, True, saving_path)
     logging.info('Inference is finished!')
 
