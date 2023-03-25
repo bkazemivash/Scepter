@@ -222,7 +222,8 @@ class ScepterVisionTransformer(nn.Module):
             x = x + self.pos_embed_temporal
             x = self.pos_drop(x)        
             x = self.temporal_encoder(x)
-        elif self.attention_type == 'joint_factorization':
+            
+        if self.attention_type == 'joint_factorization':
             x = x[:, 0]
 
         x = self.norm(x)
