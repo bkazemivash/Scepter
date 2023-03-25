@@ -10,31 +10,31 @@ MODEL:
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 3
+  depth: 1
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
-  p: 0.2
-  attn_p: 0.2
+  p: 0.1
+  attn_p: 0.3
   attn_type: space_time
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   min_max_scale: [1,255]
   imbalanced_flag: False
-  n_timepoint: 25
-  sampling_rate: 4
+  n_timepoint: 10
+  sampling_rate: 10
   normalization_dim: 1
   transform: True
   task: Recognition
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 3e-6
-  min_lr: 5e-9
+  base_lr: 3e-3
+  min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 50
-  batch_size: 2
+  batch_size: 4
   workers: 2
   warmup_epochs: 5
   warmup_lr: 1e-2
