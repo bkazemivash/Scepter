@@ -14,7 +14,7 @@ MODEL:
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
-  p: 0.1
+  p: 0.
   attn_p: 0.3
   attn_type: space_time
 DATASET:
@@ -30,13 +30,13 @@ DATASET:
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 3e-3
+  base_lr: 3e-6
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 50
-  batch_size: 4
+  batch_size: 5
   workers: 2
-  warmup_epochs: 5
+  warmup_epochs: 0
   warmup_lr: 1e-2
   loss: CrossEntropy
 TEST:
