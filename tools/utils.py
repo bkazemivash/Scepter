@@ -117,10 +117,10 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if time_slice > 0:
         inp_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data = apply_mask(inp_img, mask_img)
-    if norm_dim is not None:
-        data = normalize_array(data, ax=norm_dim)
     if scale:
         data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
+    if norm_dim is not None:
+        data = normalize_array(data, ax=norm_dim)
     data = unmask(data, mask_img)
     return data.get_fdata() # type: ignore
 

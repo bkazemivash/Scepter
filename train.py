@@ -117,7 +117,8 @@ def main():
             phase_error[phase] = epoch_loss
         logging.info("Epoch {}/{} - Train Loss: {:.10f} and Validation Loss: {:.10f}".format(epoch+1, num_epochs, phase_error['train'], phase_error['val']))
         writer.add_scalars("Loss", {'train': phase_error['train'], 'validation': phase_error['val']}, epoch)
-        if phase == 'val' and epoch_loss < best_loss and save_flag:
+        further_checkpoint = epoch % 100 == 0
+        if phase == 'val' and save_flag and (epoch_loss < best_loss or further_checkpoint):
             best_loss = epoch_loss
             torch.save({'epoch': epoch,
                         'state_dict': base_model.state_dict(),
