@@ -25,7 +25,7 @@ DATASET:
   imbalanced_flag: False
   n_timepoint: 10
   sampling_rate: 10
-  normalization_dim: 1
+  normalization_dim: null
   transform: True
   task: Recognition
 TRAIN:
