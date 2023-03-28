@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
-from nilearn.image import index_img
+from nilearn.image import index_img, math_img, clean_img
 from nibabel.nifti1 import Nifti1Image
 from scipy import stats
 from functools import reduce
@@ -60,7 +60,6 @@ def get_num_patches(inp_dim: Tuple[int, ...], patch_size: int) -> int:
     return reduce(operator.mul, tuple(map(lambda x: x//patch_size, inp_dim)), 1)
 
 
-
 def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
     """ Scale input array in range of [lb, ub]
 
@@ -91,6 +90,7 @@ def normalize_array(ar: np.ndarray, ax = -1) -> np.ndarray:
 
 def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     mask_img: str,
+                    denoise: bool = False,
                     norm_dim: Union[None, int] = None,
                     scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0,
@@ -99,7 +99,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
 
     Args:
         inp_img (Union[str, Nifti1Image]): A 4D Niimg-like object or a directory of it.
-        mask_img (str): Path to a 3D Niimg-like mask object
+        mask_img (str): Path to a 3D Niimg-like mask object.
+        denoise (bool): If True, performs denoising procedure for fMRI data. Defaults to False.
         norm_dim (Union[None, int], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI). Defaults to None.
         scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
@@ -113,14 +114,18 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
+    original_img = math_img('np.subtract(img1, img1.mean(axis=-1)[...,np.newaxis])', img1 = inp_img) # type: ignore
+    if denoise:
+        original_img = clean_img(imgs=original_img, mask_img=mask_img, detrend=True, standardize=False, low_pass=0.15, high_pass=0.02, t_r=1, )  # type: ignore    
+
     totall_timepoints = time_slice * step_size
     if time_slice > 0:
-        inp_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
-    data = apply_mask(inp_img, mask_img)
-    if scale:
-        data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
+        original_img = index_img(original_img, slice(0, totall_timepoints, step_size)) # type: ignore    
+    data = apply_mask(original_img, mask_img)
     if norm_dim is not None:
         data = normalize_array(data, ax=norm_dim)
+    if scale:
+        data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
     data = unmask(data, mask_img)
     return data.get_fdata() # type: ignore
 
@@ -148,6 +153,21 @@ def assert_tensors_equal(t1: torch.Tensor, t2: torch.Tensor) -> None:
     a1, a2 = t1.detach().numpy(), t2.detach().numpy()
     np.testing.assert_allclose(a1, a2)
 
+
+def get_key_by_value(dict_: Dict, val: int) -> str:
+    """Get the original class label from class dictionary
+
+    Args:
+        dict_ (Dict): Input class dictionary
+        val (int): Index of class
+
+    Returns:
+        str: Relevant class label
+    """    
+    key_ = list(filter(lambda x: dict_[x] == val, dict_))[0]
+    return key_
+
+
 def to_index(class_labels: List) -> Dict:
     """Make a dict with keys:labels to value: index
 
@@ -160,6 +180,7 @@ def to_index(class_labels: List) -> Dict:
     class_labels = sorted(class_labels)
     label_index_dict = {label: index for index, label in enumerate(class_labels)}
     return label_index_dict
+
 
 def compute_class_weights(x: Any) -> torch.Tensor:
     """Compute class weights in an imbalanced dataset

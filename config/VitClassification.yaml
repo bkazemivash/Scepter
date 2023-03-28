@@ -20,7 +20,8 @@ MODEL:
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  min_max_scale: [1,255]
+  min_max_scale: [1, 255]
+  clean_up: True
   imbalanced_flag: False
   n_timepoint: 10
   sampling_rate: 10
