@@ -75,7 +75,7 @@ def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
     return lb + ((ub - lb) * (np.subtract(ar, np.min(ar, axis=ax, keepdims=True))) / np.ptp(ar, axis=ax, keepdims=True))
 
 
-def normalize_array(ar: np.ndarray, ax = -1) -> np.ndarray:
+def normalize_array(ar: np.ndarray, ax:Union[None, int] = -1) -> np.ndarray:
     """ Z-score input array
 
     Args:
@@ -122,10 +122,9 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if time_slice > 0:
         original_img = index_img(original_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data = apply_mask(original_img, mask_img)
+    data = normalize_array(data, ax=norm_dim)
     if scale:
         data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
-    if norm_dim is not None:
-        data = normalize_array(data, ax=norm_dim)
     data = unmask(data, mask_img)
     return data.get_fdata() # type: ignore
 
