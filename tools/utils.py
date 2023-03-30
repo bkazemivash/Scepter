@@ -12,7 +12,7 @@ from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img, math_img, clean_img
 from nibabel.nifti1 import Nifti1Image
-from scipy import stats
+from scipy import stats, signal
 from functools import reduce
 
 
@@ -75,17 +75,8 @@ def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
     return lb + ((ub - lb) * (np.subtract(ar, np.min(ar, axis=ax, keepdims=True))) / np.ptp(ar, axis=ax, keepdims=True))
 
 
-def normalize_array(ar: np.ndarray, ax:Union[None, int] = -1) -> np.ndarray:
-    """ Z-score input array
-
-    Args:
-        ar (np.ndarray): input array to be normalized.         
-        ax (obj:int, optional): axis to apply scaling function. Defaults to None.
-
-    Returns:
-        np.ndarray: normalized (z-score) array
-    """
-    return stats.zscore(ar, axis=ax)
+def noise_cancellation(ar: np.ndarray, ax:Union[None, int] = -1) -> np.ndarray:
+    return ar
 
 
 def fmri_preprocess(inp_img: Union[str, Nifti1Image],
@@ -94,7 +85,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     norm_dim: Union[None, int] = None,
                     scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0,
-                    step_size=1) -> np.ndarray:
+                    step_size=1) -> Nifti1Image:
     """ Mask, z-score, and scale input fMRI image.
 
     Args:
@@ -114,19 +105,20 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
-    original_img = math_img('np.subtract(img1, img1.mean(axis=-1)[...,np.newaxis])', img1 = inp_img) # type: ignore
-    if denoise:
-        original_img = clean_img(imgs=original_img, mask_img=mask_img, detrend=True, standardize=False, low_pass=0.15, high_pass=0.02, t_r=1, )  # type: ignore    
 
     totall_timepoints = time_slice * step_size
     if time_slice > 0:
-        original_img = index_img(original_img, slice(0, totall_timepoints, step_size)) # type: ignore    
-    data = apply_mask(original_img, mask_img)
-    data = normalize_array(data, ax=norm_dim)
+        original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
+    data_ = apply_mask(original_img, mask_img)
+    if denoise:
+        data_ -= data_.mean(axis=1)[...,np.newaxis]
+        data_ = signal.detrend(data_)
+        data_ = noise_cancellation(data_)
+    data_ = stats.zscore(data_, axis=norm_dim) # type: ignore
     if scale:
-        data = scale_array(data, lb=scale[0], ub=scale[1], ax=-1)
-    data = unmask(data, mask_img)
-    return data.get_fdata() # type: ignore
+        data_ = scale_array(data_, lb=scale[0], ub=scale[1], ax=-1)
+    data_ = unmask(data_, mask_img)
+    return data_   # type: ignore
 
 
 def get_n_params(model: nn.Module) -> int:

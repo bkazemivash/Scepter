@@ -81,7 +81,8 @@ class ScepterViTDataset(Dataset):
                               scale=self.scaling,
                               time_slice=self.time_bound,
                               step_size=self.sampling_rate)
-        return torch.from_numpy(img).float()
+        proc_data = img.get_fdata()
+        return torch.from_numpy(proc_data).float()
 
     def _load_label(self, sample_idx: int) -> torch.Tensor:
         """Load label of each sample and convert to a tensor.
