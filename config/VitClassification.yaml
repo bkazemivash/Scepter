@@ -31,7 +31,7 @@ DATASET:
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 1e-5
+  base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 100

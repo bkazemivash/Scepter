@@ -80,7 +80,8 @@ def butter_bandpass_filter(ar: np.ndarray,
                            sampling_rate=.5, 
                            order = 5) -> np.ndarray:
     b, a = signal.butter(order, cut_off_threshold, fs=sampling_rate, btype='band')
-    filtered_signal = signal.filtfilt(b, a, ar, axis=0, padlen=ar.shape[0]-2)
+    padding = ar.shape[0] - 1
+    filtered_signal = signal.filtfilt(b, a, ar, axis=0, padlen=padding)
     return filtered_signal
 
 
