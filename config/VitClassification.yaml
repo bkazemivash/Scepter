@@ -34,7 +34,7 @@ TRAIN:
   base_lr: 1e-5
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 110
+  step_lr: 100
   batch_size: 4
   workers: 2
   warmup_epochs: 0

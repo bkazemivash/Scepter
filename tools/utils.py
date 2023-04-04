@@ -75,8 +75,13 @@ def scale_array(ar: np.ndarray, lb = 0, ub = 1, ax = -1) -> np.ndarray:
     return lb + ((ub - lb) * (np.subtract(ar, np.min(ar, axis=ax, keepdims=True))) / np.ptp(ar, axis=ax, keepdims=True))
 
 
-def noise_cancellation(ar: np.ndarray, ax:Union[None, int] = -1) -> np.ndarray:
-    return ar
+def butter_bandpass_filter(ar: np.ndarray, 
+                           cut_off_threshold: List[Union[None, float]] = [.02, .15], 
+                           sampling_rate=.5, 
+                           order = 5) -> np.ndarray:
+    b, a = signal.butter(order, cut_off_threshold, fs=sampling_rate, btype='band')
+    filtered_signal = signal.filtfilt(b, a, ar, axis=0, padlen=ar.shape[0]-2)
+    return filtered_signal
 
 
 def fmri_preprocess(inp_img: Union[str, Nifti1Image],
@@ -113,7 +118,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if denoise:
         data_ -= data_.mean(axis=1)[...,np.newaxis]
         data_ = signal.detrend(data_)
-        data_ = noise_cancellation(data_)
+        data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
     data_ = stats.zscore(data_, axis=norm_dim) # type: ignore
     if scale:
         data_ = scale_array(data_, lb=scale[0], ub=scale[1], ax=-1)

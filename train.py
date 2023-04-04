@@ -87,7 +87,7 @@ def main():
         logging.info(f"Pytorch Distributed Data Parallel activated using gpus: {gpu_ids}")
     if torch.cuda.is_available():
         base_model = base_model.cuda()
-    optimizer = torch.optim.Adam(base_model.parameters(), lr=float(conf.TRAIN.base_lr))
+    optimizer = torch.optim.SGD(base_model.parameters(), lr=float(conf.TRAIN.base_lr), momentum=0.9)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=int(conf.TRAIN.step_lr), gamma=float(conf.TRAIN.weight_decay))
     best_loss = float('inf')
     logging.info(f"Optimizer: Adam , Criterion: Cross entropy loss , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
