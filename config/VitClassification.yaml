@@ -23,19 +23,19 @@ DATASET:
   min_max_scale: null
   clean_up: True
   imbalanced_flag: False
-  n_timepoint: 10
-  sampling_rate: 10
+  n_timepoint: 25
+  sampling_rate: 4
   normalization_dim: null
   transform: True
   task: Recognition
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 1e-3
+  base_lr: 1e-5
   min_lr: 1e-8
-  weight_decay: 0.1
-  step_lr: 100
-  batch_size: 4
+  weight_decay: 0.9
+  step_lr: 50
+  batch_size: 2
   workers: 2
   warmup_epochs: 0
   warmup_lr: 1e-2

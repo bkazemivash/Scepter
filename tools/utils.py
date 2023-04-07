@@ -113,6 +113,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         raise TypeError("Input image is not a Nifti file, please check your input!") 
 
     totall_timepoints = time_slice * step_size
+    original_img = inp_img
     if time_slice > 0:
         original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data_ = apply_mask(original_img, mask_img)
