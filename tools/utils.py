@@ -10,9 +10,10 @@ import torch
 import torch.nn as nn
 from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
-from nilearn.image import index_img, math_img, clean_img
+from nilearn.image import index_img
 from nibabel.nifti1 import Nifti1Image
 from scipy import stats, signal
+from scipy.ndimage import gaussian_filter
 from functools import reduce
 
 
@@ -88,7 +89,8 @@ def butter_bandpass_filter(ar: np.ndarray,
 def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     mask_img: str,
                     denoise: bool = False,
-                    norm_dim: Union[None, int] = None,
+                    blur: bool = False,
+                    norm_dim: Union[None, int, str] = None,
                     scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0,
                     step_size=1) -> Nifti1Image:
@@ -98,7 +100,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         inp_img (Union[str, Nifti1Image]): A 4D Niimg-like object or a directory of it.
         mask_img (str): Path to a 3D Niimg-like mask object.
         denoise (bool): If True, performs denoising procedure for fMRI data. Defaults to False.
-        norm_dim (Union[None, int], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI). Defaults to None.
+        blur (bool): If True, perform gaussian filter on the image. Defaults to False.
+        norm_dim (Union[None, int, str], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI), 'all' for whole image. Defaults to None.
         scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
@@ -117,13 +120,16 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if time_slice > 0:
         original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data_ = apply_mask(original_img, mask_img)
-    if denoise:
-        data_ -= data_.mean(axis=1)[...,np.newaxis]
-        data_ = signal.detrend(data_)
-        data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
-    data_ = stats.zscore(data_, axis=norm_dim) # type: ignore
     if scale:
         data_ = scale_array(data_, lb=scale[0], ub=scale[1], ax=-1)
+    if denoise:
+        data_ -= data_.mean(axis=1)[...,np.newaxis]
+        data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
+    if blur:
+        data_ = gaussian_filter(data_, sigma=0.5)
+    if norm_dim:
+        axis_ = None if norm_dim == 'all' else int(norm_dim)
+        data_ = stats.zscore(data_, axis=axis_) # type: ignore
     data_ = unmask(data_, mask_img)
     return data_   # type: ignore
 

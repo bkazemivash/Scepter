@@ -31,6 +31,7 @@ class ScepterViTDataset(Dataset):
         image_size (Tuple[int,...]): Size of each fMRI image.
         min_max_scale (Union[None, Tuple[int, int]], optional): If not None, set lower and upper bound of scaling. Defaults to None.
         clean_up (bool): if True, apply noise cleaning procedure. Bandpass filter and detrending. Defaults to False.
+        smooth (bool): if True, apply guassian filter on the image. Defaults to False.
         imbalanced_flag (bool, optional): True if dataset is imbalanced otherwise False. Defaults to False.
         n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
         sampling_rate (int, optional): Sampling rate of timepoints. Defaults to 1.
@@ -45,6 +46,7 @@ class ScepterViTDataset(Dataset):
                  image_size: Tuple[int,...],
                  min_max_scale: Union[None, Tuple[int, int]] = None,
                  clean_up = False,
+                 smooth = False,
                  imbalanced_flag = False,
                  n_timepoint = 100,
                  sampling_rate = 1,
@@ -57,6 +59,7 @@ class ScepterViTDataset(Dataset):
         self.image_size = image_size
         self.scaling = min_max_scale
         self.clean_noise = clean_up
+        self.smoothing = smooth
         self.imbalanced_weights = compute_class_weights(self.info_dataframe.Diagnosis) if imbalanced_flag else None
         self.time_bound = n_timepoint
         self.sampling_rate = sampling_rate
@@ -77,6 +80,7 @@ class ScepterViTDataset(Dataset):
         img = fmri_preprocess(inp_img=img_dir,
                               mask_img=self.mask_img,
                               denoise=self.clean_noise,
+                              blur=self.smoothing,
                               norm_dim=self.norm_dim,
                               scale=self.scaling,
                               time_slice=self.time_bound,
