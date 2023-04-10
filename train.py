@@ -127,8 +127,8 @@ def main():
                         os.path.join(checkpoints_directory, 'checkpoint_{}_{}.pth'.format(epoch, time.strftime("%m%d%y_%H%M%S"))))
     
     writer.flush()
-    logging.info("Training procedure is done!")
     writer.close()
+    logging.info("Training procedure is done!")
 
 
 if __name__ == "__main__":

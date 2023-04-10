@@ -10,7 +10,7 @@ MODEL:
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 2
+  depth: 3
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
@@ -24,13 +24,13 @@ DATASET:
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 25
-  sampling_rate: 4
+  n_timepoint: 10
+  sampling_rate: 10
   normalization_dim: null
   transform: True
   task: Recognition
 TRAIN:
-  epochs: 500
+  epochs: 200
   early_stop: False
   base_lr: 1e-5
   min_lr: 1e-8
