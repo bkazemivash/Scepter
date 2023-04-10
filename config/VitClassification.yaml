@@ -24,9 +24,9 @@ DATASET:
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 10
-  sampling_rate: 10
-  normalization_dim: null
+  n_timepoint: 20
+  sampling_rate: 5
+  normalization_dim: all
   transform: True
   task: Recognition
 TRAIN:
