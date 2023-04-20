@@ -4,13 +4,14 @@ This module contains mandatory functions to run different preprocessing and
 postprocessing steps on input fMRI images.
 """
 
+import os
 import numpy as np
 import operator
 import torch
 import torch.nn as nn
 from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
-from nilearn.image import index_img
+from nilearn.image import index_img, load_img
 from nibabel.nifti1 import Nifti1Image
 from scipy import stats, signal
 from scipy.ndimage import gaussian_filter
@@ -107,10 +108,10 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
 
     Raises:
-        TypeError: If 'inp_img' is not a Niimg-like object
+        TypeError: If 'inp_img' is not a Niimg-like object.
 
     Returns:
-        np.ndarray: 4D image array
+        Nifti1Image: a 4D Niimg-like object.
     """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
@@ -127,6 +128,55 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
+    if norm_dim:
+        axis_ = None if norm_dim == 'all' else int(norm_dim)
+        data_ = stats.zscore(data_, axis=axis_) # type: ignore
+    data_ = unmask(data_, mask_img)
+    return data_   # type: ignore
+
+
+def path_correction(inp_path: str) -> tuple[str, str]:
+    """Generating paths for spatial/temporal nii files.
+
+    Args:
+        inp_path (str): Path to the ICA mat file.
+
+    Returns:
+        tuple[str, str]: Paths to spatial maps and time-courses files.
+    """    
+    splited_path = inp_path.replace('.mat', 'component').split('component')
+    spatial_mat_data = ''.join([splited_path[0], 'component', splited_path[1], '.nii'])
+    temporal_mat_data = ''.join([splited_path[0], 'timecourses', splited_path[1], '.nii'])
+    return spatial_mat_data, temporal_mat_data
+
+
+def ica_preprocess(inp_mat_file: str,
+                   mask_img: str,
+                   valid_networks: List[int,],
+                   norm_dim: Union[None, int, str] = None,
+                   time_slice =0,
+                   step_size=1) -> Nifti1Image:
+    """Preprocess ICA time-courses and spatial maps.
+
+    Args:
+        inp_mat_file (str): Path to mat file including detail information.
+        mask_img (str): Path to a 3D Niimg-like mask object.
+        valid_networks (List[int,]): List of all verified ICA components.
+        norm_dim (Union[None, int, str], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI), 'all' for whole image. Defaults to None.
+        time_slice (int, optional): Slice of timepoints. Defaults to 0.
+        step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
+
+    Returns:
+        Nifti1Image: a 4D Niimg-like object.
+    """    
+    spatial_map, time_course = path_correction(inp_mat_file)
+    spatial_data = apply_mask(spatial_map, mask_img)
+    temporal_data = load_img(time_course).get_fdata() # type: ignore
+    steper = slice(0,None)
+    if time_slice>0:
+        totall_timepoints = time_slice * step_size
+        steper = slice(0, totall_timepoints, step_size)
+    data_ = temporal_data[steper, valid_networks] @ spatial_data[valid_networks,:]
     if norm_dim:
         axis_ = None if norm_dim == 'all' else int(norm_dim)
         data_ = stats.zscore(data_, axis=axis_) # type: ignore

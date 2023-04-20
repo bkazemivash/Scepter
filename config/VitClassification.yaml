@@ -10,13 +10,13 @@ MODEL:
   in_chans: 1
   n_classes: 3
   embed_dim: 768
-  depth: 2
+  depth: 1
   n_heads: 12
   mlp_ratio: 4
   qkv_bias: True
   p: 0.3
   attn_p: 0.3
-  attn_type: encoder_factorization
+  attn_type: space_time
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
@@ -27,16 +27,20 @@ DATASET:
   n_timepoint: 20
   sampling_rate: 5
   normalization_dim: all
+  inp_mode: ICA
+  valid_ids: [69, 53, 98, 99, 45, 21, 56, 3, 9, 2, 11, 27, 54, 66, 80, 72, 16, 5, 62, 15, 
+              12, 93, 20, 8, 77, 68, 33, 43, 70, 61, 55, 63, 79, 84, 96, 88, 48, 81, 37, 67, 
+              38, 83, 32, 40, 23, 71, 17, 51, 94, 13, 18, 4, 7]
   transform: True
   task: Recognition
 TRAIN:
   epochs: 200
   early_stop: False
-  base_lr: 1e-5
+  base_lr: 1e-2
   min_lr: 1e-8
-  weight_decay: 0.9
+  weight_decay: 0.1
   step_lr: 50
-  batch_size: 2
+  batch_size: 3
   workers: 2
   warmup_epochs: 0
   warmup_lr: 1e-2
