@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CrossEntropyLoss, CosineSimilarity
+from torch.nn import CrossEntropyLoss, CosineSimilarity, BCEWithLogitsLoss
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
@@ -13,7 +13,10 @@ from recognition.spatiotemporal_vit import VisionTransformer
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
-def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition', sample_weight=None) -> torch.Tensor:
+def criterion(x1: torch.Tensor, 
+              x2: torch.Tensor, 
+              task='Recognition', 
+              sample_weight=None) -> torch.Tensor:
     """Computes loss value based on the defined task.
 
     Args:
@@ -27,6 +30,10 @@ def criterion(x1: torch.Tensor, x2: torch.Tensor, task='Recognition', sample_wei
     """ 
     if task == 'Recognition':
         entropy = CrossEntropyLoss(weight=sample_weight)
+        if x1.shape[1] == 1:
+            x1 = x1.squeeze()
+            x2 = x2.float()
+            entropy = BCEWithLogitsLoss(weight=sample_weight) 
         return entropy(x1, x2)
     else:
         cos = CosineSimilarity(dim=1, eps=1e-6)

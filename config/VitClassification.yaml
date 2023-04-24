@@ -8,7 +8,7 @@ MODEL:
   img_size: [53, 63, 52]
   patch_size: 7
   in_chans: 1
-  n_classes: 3
+  n_classes: 1
   embed_dim: 768
   depth: 1
   n_heads: 12
@@ -26,7 +26,7 @@ DATASET:
   imbalanced_flag: False
   n_timepoint: 20
   sampling_rate: 5
-  normalization_dim: all
+  normalization_dim: null
   inp_mode: ICA
   valid_ids: [69, 53, 98, 99, 45, 21, 56, 3, 9, 2, 11, 27, 54, 66, 80, 72, 16, 5, 62, 15, 
               12, 93, 20, 8, 77, 68, 33, 43, 70, 61, 55, 63, 79, 84, 96, 88, 48, 81, 37, 67, 
