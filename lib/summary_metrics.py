@@ -45,7 +45,11 @@ def compute_confusion_matrix(x1: torch.Tensor,
         torch.Tensor: Confusion matrix for the given tensors.
     """    
     confusion_matrix = torch.zeros(n_cls, n_cls)
-    _,target = x1.topk(1, dim=1)  
+    if n_cls == 2:
+         target = x1.sigmoid().round()
+    else:
+         _,target = x1.topk(1, dim=1)  
+
     for t, p in zip(target.view(-1), x2.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1      
     return confusion_matrix

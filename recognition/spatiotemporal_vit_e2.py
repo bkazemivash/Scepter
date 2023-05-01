@@ -134,52 +134,6 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class AdvancedEncoderBlock(nn.Module):
-    """Implementation of Advanced Encoder block
-
-    Args:
-        dim (int): Dimension of embedding.
-        n_heads (int): Number of heads.
-        mlp_ratio (float): Determines ratio of emb dim for MLP hidden layer.Defaults to 4.0
-        qkv_bias (bool, optional): Enable bias. Defaults to False.
-        attn_p (float, optional): Drop out ratio for attn block. Defaults to 0.
-        p (float, optional): Drop out ratio for projection. Defaults to 0.
-        enc_type (str): Encoding scenario with joint or parallel factorization. Defaults to 'joint'
-    """        
-    def __init__(self, dim, n_heads, mlp_ratio=4.0, qkv_bias=True, p=0., attn_p=0., enc_type='joint') -> None:
-        super().__init__()
-        self.norm1 = nn.LayerNorm(dim, eps=1e-6)
-        self.spatial_attn = Attention(
-                dim, 
-                n_heads=n_heads,
-                qkv_bias=qkv_bias,
-                attn_p=attn_p, 
-                proj_p=p,)
-
-        self.norm2 = nn.LayerNorm(dim, eps=1e-6)
-        self.temporal_attn = Attention(
-                dim, 
-                n_heads=n_heads,
-                qkv_bias=qkv_bias,
-                attn_p=attn_p, 
-                proj_p=p,)
-
-        self.norm3 = nn.LayerNorm(dim, eps=1e-6)
-        hidden_features = int(dim * mlp_ratio)
-        self.mlp = MLP(
-                in_feature=dim, 
-                hidden_feature=hidden_features,
-                out_feature=dim,)
-
-
-    def forward(self, x):
-        x = x + self.spatial_attn(self.norm1(x))
-        x = x[:, 0]
-        x = x + self.temporal_attn(self.norm2(x))
-        x = x + self.mlp(self.norm3(x))
-        return x
-
-
 class ScepterVisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
@@ -215,7 +169,7 @@ class ScepterVisionTransformer(nn.Module):
             self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
         self.pos_drop = nn.Dropout(p)
         self.attn_type = attn_p
-        self.spatial_blocks = nn.ModuleList(
+        self.enc_blocks = nn.ModuleList(
             [
                 EncoderBlock(
                     dim=embed_dim, 
@@ -227,7 +181,7 @@ class ScepterVisionTransformer(nn.Module):
                 for _ in range(depth)
             ]
         )
-        if attn_type == 'encoder_factorization':
+        if attn_type in ['joint_encoders', 'sequential_encoders', 'fuse_encoders']:
             self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
             self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.time_dim, embed_dim))            
             self.temporal_encoder = EncoderBlock(
@@ -255,10 +209,10 @@ class ScepterVisionTransformer(nn.Module):
         x = torch.cat((cls_token, x), dim=1)
         x = x + self.pos_embed
         x = self.pos_drop(x)        
-        for block in self.spatial_blocks:
+        for block in self.enc_blocks:
             x = block(x)
         
-        if self.attention_type == 'encoder_factorization':
+        if self.attention_type == 'joint_encoders':
             x = x[:, 0]
             n_samples //= self.time_dim
             n_patch = self.time_dim
@@ -269,10 +223,24 @@ class ScepterVisionTransformer(nn.Module):
             x = self.pos_drop(x)        
             x = self.temporal_encoder(x)
             
-        if self.attention_type == 'joint_attention_factorization':
+        if self.attention_type == 'sequential_encoders':
+            x = x[:,1:]
+            n_samples //= self.time_dim 
+            x = x.reshape(n_samples, self.time_dim, n_patch, embbeding_dim).permute(0,2,1,3)
+            n_samples *= n_patch
+            x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
+            # HERE
+            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
+            x = torch.cat((cls_token_temporal, x), dim=1)
+            x = x + self.pos_embed_temporal
+            x = self.pos_drop(x)
+            x = self.temporal_encoder(x)
             x = x[:, 0]
+            n_samples //= n_patch
+            x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
+            
 
-        if self.attention_type == 'parallel_attention_factorization':
+        if self.attention_type == 'parallel_encoders':
             x = x[:, 0]
 
         x = self.norm(x)

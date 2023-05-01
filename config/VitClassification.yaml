@@ -10,9 +10,9 @@ MODEL:
   in_chans: 1
   n_classes: 1
   embed_dim: 768
-  depth: 1
+  depth: 2
   n_heads: 12
-  mlp_ratio: 4
+  mlp_ratio: 1
   qkv_bias: True
   p: 0.3
   attn_p: 0.3
@@ -36,11 +36,11 @@ DATASET:
 TRAIN:
   epochs: 200
   early_stop: False
-  base_lr: 1e-2
+  base_lr: 1e-5
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 50
-  batch_size: 3
+  batch_size: 2
   workers: 2
   warmup_epochs: 0
   warmup_lr: 1e-2
