@@ -181,7 +181,7 @@ class ScepterVisionTransformer(nn.Module):
                 for _ in range(depth)
             ]
         )
-        if attn_type in ['joint_encoders', 'sequential_encoders', 'fuse_encoders']:
+        if attn_type in ['joint_encoders', 'sequential_encoders', 'parallel_encoders']:
             self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
             self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.time_dim, embed_dim))            
             self.temporal_encoder = EncoderBlock(
@@ -237,8 +237,7 @@ class ScepterVisionTransformer(nn.Module):
             x = self.temporal_encoder(x)
             x = x[:, 0]
             n_samples //= n_patch
-            x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
-            
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim)).mean(dim=1, keepdim=True)
 
         if self.attention_type == 'parallel_encoders':
             x = x[:, 0]
