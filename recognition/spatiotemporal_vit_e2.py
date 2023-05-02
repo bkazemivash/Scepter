@@ -192,6 +192,17 @@ class ScepterVisionTransformer(nn.Module):
                                         p=p, 
                                         attn_p=attn_p,)
 
+        if attn_type == 'parallel_encoders':
+            self.cls_token_fusion = nn.Parameter(torch.zeros(1, 1, embed_dim))
+            self.pos_embed_fusion = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches + self.time_dim, embed_dim))            
+            self.fusion_encoder = EncoderBlock(
+                                        dim=embed_dim, 
+                                        n_heads=n_heads, 
+                                        mlp_ratio=mlp_ratio, 
+                                        qkv_bias=qkv_bias, 
+                                        p=p, 
+                                        attn_p=attn_p,)
+            
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, n_classes)
 
@@ -199,6 +210,8 @@ class ScepterVisionTransformer(nn.Module):
         b, c, t, i, j, z = x.shape
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
         x = self.patch_embed(x)
+        if self.attention_type == 'parallel_encoders':
+            y = x.clone()
         n_samples, n_patch, embbeding_dim = x.shape        
         if self.attention_type == 'space_time':
             n_samples //= self.time_dim 
@@ -229,7 +242,6 @@ class ScepterVisionTransformer(nn.Module):
             x = x.reshape(n_samples, self.time_dim, n_patch, embbeding_dim).permute(0,2,1,3)
             n_samples *= n_patch
             x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
-            # HERE
             cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
             x = torch.cat((cls_token_temporal, x), dim=1)
             x = x + self.pos_embed_temporal
@@ -237,10 +249,33 @@ class ScepterVisionTransformer(nn.Module):
             x = self.temporal_encoder(x)
             x = x[:, 0]
             n_samples //= n_patch
-            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim)).mean(dim=1, keepdim=True)
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim)).sum(dim=1, keepdim=True)
 
         if self.attention_type == 'parallel_encoders':
-            x = x[:, 0]
+            x = x[:,0]
+            n_samples //= self.time_dim
+            x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
+
+            n_samples, n_patch, embbeding_dim = y.shape  
+            n_samples //= self.time_dim 
+            y = y.reshape(n_samples, self.time_dim, n_patch, embbeding_dim).permute(0,2,1,3)
+            n_samples *= n_patch
+            y = torch.reshape(y, (n_samples, self.time_dim, embbeding_dim))
+            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
+            y = torch.cat((cls_token_temporal, y), dim=1)
+            y = y + self.pos_embed_temporal
+            y = self.pos_drop(y)
+            y = self.temporal_encoder(y)
+            y = y[:,0]
+            n_samples //= n_patch
+            y = torch.reshape(y, (n_samples, n_patch, embbeding_dim))
+
+            x = torch.cat((x, y), dim=1)
+            token_fusion = self.cls_token_fusion.expand(n_samples, -1, -1)
+            x = torch.cat((token_fusion, x), dim=1)
+            x = x + self.pos_embed_fusion
+            x = self.pos_drop(x)
+            x = self.fusion_encoder(x)
 
         x = self.norm(x)
         cls_token_final = x[:, 0]
