@@ -167,7 +167,7 @@ class VisionTransformer(nn.Module):
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
         self.pos_drop = nn.Dropout(p)
-        self.attn_type = attn_p
+        # self.attn_type = attn_p
         self.spatial_blocks = nn.ModuleList(
             [
                 EncoderBlock(
