@@ -1,2 +1,2 @@
 # Scepter
-Spatiotemporal brain dynamic analysis framework using fMRI data (Functional magnetic resonance imaging).
+Spatiotemporal dynamic analysis framework for studying brain activities.
