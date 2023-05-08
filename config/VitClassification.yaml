@@ -27,6 +27,7 @@ DATASET:
   n_timepoint: 20
   sampling_rate: 5
   normalization_dim: null
+  stablize: False  
   inp_mode: ICA
   valid_ids: [69, 53, 98, 99, 45, 21, 56, 3, 9, 2, 11, 27, 54, 66, 80, 72, 16, 5, 62, 15, 
               12, 93, 20, 8, 77, 68, 33, 43, 70, 61, 55, 63, 79, 84, 96, 88, 48, 81, 37, 
@@ -34,12 +35,12 @@ DATASET:
   transform: True
   task: Recognition
 TRAIN:
-  epochs: 200
+  epochs: 500
   early_stop: False
   base_lr: 1e-5
   min_lr: 1e-8
-  weight_decay: 0.1
-  step_lr: 50
+  weight_decay: 0.5
+  step_lr: 200
   batch_size: 2
   workers: 2
   warmup_epochs: 0

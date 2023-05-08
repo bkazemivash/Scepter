@@ -28,7 +28,7 @@ class IMode(Enum):
     fmri = 'fMRI'
     ica = 'ICA'
 
-class ScepterViTDataset(Dataset):      
+class ScepterViTDataset(Dataset):
     """Dual purpose dataset class for recognition and dense prediction.
 
     Args:
@@ -37,15 +37,18 @@ class ScepterViTDataset(Dataset):
         mask_file (str): Path to mask file.
         image_size (Tuple[int,...]): Size of each fMRI image.
         min_max_scale (Union[None, Tuple[int, int]], optional): If not None, set lower and upper bound of scaling. Defaults to None.
-        clean_up (bool): if True, apply noise cleaning procedure. Bandpass filter and detrending. Defaults to False.
-        smooth (bool): if True, apply guassian filter on the image. Defaults to False.
+        clean_up (bool, optional): if True, apply noise cleaning procedure. Bandpass filter and detrending. Defaults to False.
+        smooth (bool, optional): if True, apply guassian filter on the image. Defaults to False.
         imbalanced_flag (bool, optional): True if dataset is imbalanced otherwise False. Defaults to False.
         n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
         sampling_rate (int, optional): Sampling rate of timepoints. Defaults to 1.
-        normalization_dim (int, optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
+        normalization_dim (Union[None, int], optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
+        stablize (bool, optional): Compute absolute value of tensor. Defaults to False.
+        inp_mode (str, optional): Mode of input data which can be either fMRI or ICA. Defaults to 'fMRI'.
+        valid_ids (Union[None, List[int,]], optional): Index of verified ICA components. Defaults to None.
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
         task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
-    """        
+    """   
     def __init__(self, 
                  image_list_file: str,
                  dataset_name: str,
@@ -58,6 +61,7 @@ class ScepterViTDataset(Dataset):
                  n_timepoint = 100,
                  sampling_rate = 1,
                  normalization_dim: Union[None, int] = 1,
+                 stablize = False,
                  inp_mode = 'fMRI',
                  valid_ids: Union[None, List[int,]] = None,
                  transform = False,
@@ -73,6 +77,7 @@ class ScepterViTDataset(Dataset):
         self.time_bound = n_timepoint
         self.sampling_rate = sampling_rate
         self.norm_dim = normalization_dim
+        self.stablize = stablize
         self.mode = IMode(inp_mode)
         self.verified_networks = valid_ids
         self.transform = img_transform() if transform else None 
@@ -100,14 +105,14 @@ class ScepterViTDataset(Dataset):
         elif self.mode == IMode.ica:
             self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
             img_dir = img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
-            img = ica_preprocess(inp_mat_file=img_dir,
+            img = ica_mixture(inp_mat_file=img_dir,
                                  mask_img=self.mask_img,
                                  valid_networks=self.verified_networks,
-                                 norm_dim=self.norm_dim,
+                                 stablize=self.stablize,
                                  time_slice=self.time_bound,
                                  step_size=self.sampling_rate)
 
-        proc_data = img.get_fdata()
+        proc_data = img.get_fdata() # type: ignore
         return torch.from_numpy(proc_data).float()
 
     def _load_label(self, sample_idx: int) -> torch.Tensor:
@@ -118,10 +123,21 @@ class ScepterViTDataset(Dataset):
 
         Returns:
             torch.Tensor: Index of relevent class.
-        """                
-        assert self.class_dict !=  None, ValueError('Class labels are not defined!')
-        status = self.info_dataframe.iloc[sample_idx].Diagnosis
-        return torch.tensor(self.class_dict[status], dtype=torch.long)
+        """
+        if self.class_dict:
+            status = self.info_dataframe.iloc[sample_idx].Diagnosis
+            return torch.tensor(self.class_dict[status], dtype=torch.long)
+        else:
+            self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
+            img_dir = img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
+            img = ica_mixture(inp_mat_file=img_dir,
+                                 mask_img=self.mask_img,
+                                 valid_networks=self.verified_networks,
+                                 stablize=self.stablize,
+                                 time_slice=self.time_bound,
+                                 step_size=self.sampling_rate,
+                                 rearange=False)
+            return img.float() # type: ignore
 
     def __len__(self):
         return len(self.info_dataframe)

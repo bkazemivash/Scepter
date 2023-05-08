@@ -150,37 +150,42 @@ def path_correction(inp_path: str) -> tuple[str, str]:
     return spatial_mat_data, temporal_mat_data
 
 
-def ica_preprocess(inp_mat_file: str,
+def ica_mixture(inp_mat_file: str,
                    mask_img: str,
                    valid_networks: List[int,],
-                   norm_dim: Union[None, int, str] = None,
-                   time_slice =0,
-                   step_size=1) -> Nifti1Image:
+                   stablize = False,
+                   time_slice = 0,
+                   step_size = 1,
+                   rearange = True) -> Union[Nifti1Image, torch.Tensor]:
     """Preprocess ICA time-courses and spatial maps.
 
     Args:
         inp_mat_file (str): Path to mat file including detail information.
         mask_img (str): Path to a 3D Niimg-like mask object.
         valid_networks (List[int,]): List of all verified ICA components.
-        norm_dim (Union[None, int, str], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI), 'all' for whole image. Defaults to None.
+        stablize (bool, optional): Get absolute value of data. Dafaults to False.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
+        rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to True.
 
     Returns:
-        Nifti1Image: a 4D Niimg-like object.
-    """    
+        Union[Nifti1Image, torch.Tensor]: a 4D Niimg-like object or processed ICA components.
+    """
+    valid_idx = np.array(valid_networks) - 1
     spatial_map, time_course = path_correction(inp_mat_file)
-    spatial_data = apply_mask(spatial_map, mask_img)
-    temporal_data = load_img(time_course).get_fdata() # type: ignore
+    spatial_data = torch.from_numpy(apply_mask(spatial_map, mask_img))
+    temporal_data = torch.from_numpy(load_img(time_course).get_fdata()) # type: ignore
     steper = slice(0,None)
     if time_slice>0:
         totall_timepoints = time_slice * step_size
         steper = slice(0, totall_timepoints, step_size)
-    data_ = temporal_data[steper, valid_networks] @ spatial_data[valid_networks,:]
-    if norm_dim:
-        axis_ = None if norm_dim == 'all' else int(norm_dim)
-        data_ = stats.zscore(data_, axis=axis_) # type: ignore
-    data_ = unmask(data_, mask_img)
+    command_ = 'bp,pq->bq' if rearange else 'bp,pq->bqp'
+    data_ = torch.einsum(command_, temporal_data[steper, valid_idx], spatial_data[valid_idx,:])    
+    if stablize:
+        data_ = data_.abs()
+    data_ -= data_.mean(dim=(0,1))
+    if rearange:
+        data_ = unmask(data_, mask_img)
     return data_   # type: ignore
 
 

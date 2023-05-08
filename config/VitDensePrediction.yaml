@@ -1,27 +1,51 @@
 EXPERIMENT:
-  TAG: dense_ViT_12_PearsonCorrelation
-  NETWORK_ID: 9
-  SAVE_MODEL: True
+  tag: Recognition
+  name: dp_ViT_space_time
+  edition: 1
+  type: ViT
+  save_model: True
 MODEL:
-  TYPE: ViT
-  NAME: ScepterDenseViT
-  DROP_OUT: True
-  DROP_RATE: 0.5
-  KERNEL_SIZE: 3
-  BATCH_NORM: True
+  img_size: [53, 63, 52]
+  patch_size: 7
+  in_chans: 1
+  n_classes: 1
+  embed_dim: 768
+  depth: 2
+  n_heads: 12
+  mlp_ratio: 1
+  qkv_bias: True
+  p: 0.1
+  attn_p: 0.
+  attn_type: space_time
 DATASET:
-  NAME: UKBiobank
-  SAMPLE_SIZE: 100
-  IMAGE_SIZE: [53, 63, 52, 490]
-  VALID_NETWORKS: [69,53,98,99,45,21,56,3,9,2,11,27,54,66,80,72,16,5,62,15,12,93,20,8,77,68,33,43,70,61,55,63,79,84,96,88,48,81,37,67,38,83,32,40,23,71,17,51,94,13,18,4,7]
+  dataset_name: BSNIP
+  image_size: [53, 63, 52, 100]
+  min_max_scale: null
+  clean_up: True
+  smooth: False
+  imbalanced_flag: False
+  n_timepoint: 20
+  sampling_rate: 5
+  normalization_dim: all
+  stablize: True
+  inp_mode: fMRI
+  valid_ids: [9, 2]
+  transform: True
+  task: DensePrediction
 TRAIN:
-  EPOCHS: 200
-  EARLY_STOPP: True
-  WARMUP_EPOCHS: 10
-  BASE_LR: 1e-4
-  WARMUP_LR: 3e-7
-  MIN_LR: 5e-6
-  WEIGHT_DECAY: 0.01
-  BATCH_SIZE: 5
-  WORKERS: 4
-  LOSS: PearsonCorrelation
+  epochs: 500
+  early_stop: False
+  base_lr: 1e-5
+  min_lr: 1e-8
+  weight_decay: 0.5
+  step_lr: 200
+  batch_size: 2
+  workers: 2
+  warmup_epochs: 0
+  warmup_lr: 1e-2
+  loss: Pearson_Correlation
+TEST:
+  test_size: 1
+  test_workers: 0
+  shuffling: False
+  metric: Cosine_Similarity
