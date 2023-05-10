@@ -35,12 +35,12 @@ DATASET:
   transform: True
   task: Recognition
 TRAIN:
-  epochs: 500
+  epochs: 200
   early_stop: False
   base_lr: 1e-5
   min_lr: 1e-8
   weight_decay: 0.5
-  step_lr: 200
+  step_lr: 100
   batch_size: 2
   workers: 2
   warmup_epochs: 0

@@ -8,7 +8,7 @@ MODEL:
   img_size: [53, 63, 52]
   patch_size: 7
   in_chans: 1
-  n_classes: 1
+  n_score_maps: 2
   embed_dim: 768
   depth: 2
   n_heads: 12
