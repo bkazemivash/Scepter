@@ -1,0 +1,49 @@
+EXPERIMENT:
+  tag: DensePrediction
+  name: dp_acnn_space_time
+  edition: 1
+  type: ACNN
+  save_model: True
+MODEL:
+  depth: 3
+  in_ch: 1
+  dim: 4
+  head_dim: 2
+  is_active: True
+  encoder_type: 'space_time_general_view'
+  atrous_bias: True
+  blk_p: 0.
+  p: 0.
+DATASET:
+  dataset_name: BSNIP
+  image_size: [53, 63, 52, 100]
+  min_max_scale: null
+  clean_up: True
+  smooth: False
+  imbalanced_flag: False
+  n_timepoint: 20
+  sampling_rate: 5
+  normalization_dim: all
+  stablize: True
+  inp_mode: fMRI
+  data_shape: False
+  valid_ids: [9, 2]
+  transform: True
+  task: DensePrediction
+TRAIN:
+  epochs: 500
+  early_stop: False
+  base_lr: 1e-3
+  min_lr: 1e-8
+  weight_decay: 0.5
+  step_lr: 50
+  batch_size: 2
+  workers: 2
+  warmup_epochs: 0
+  warmup_lr: 1e-2
+  loss: MSE
+TEST:
+  test_size: 1
+  test_workers: 0
+  shuffling: False
+  metric: Cosine_Similarity
