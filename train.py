@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CrossEntropyLoss, CosineSimilarity, BCEWithLogitsLoss
+from torch.nn import CrossEntropyLoss, CosineSimilarity, BCEWithLogitsLoss, MSELoss
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
@@ -36,10 +36,13 @@ def criterion(x1: torch.Tensor,
             entropy = BCEWithLogitsLoss(weight=sample_weight) 
         return entropy(x1, x2)
     else:
-        x1, x2 = x1.flatten(1), x2.flatten(1)
-        cos = CosineSimilarity(dim=1, eps=1e-6)
-        pearson = cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-        return 1. - pearson
+        # x1, x2 = x1.flatten(1), x2.flatten(1)
+        # cos = CosineSimilarity(dim=1, eps=1e-6)
+        # pearson = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
+        # return pearson.sum()
+        distance_ = MSELoss()
+        return distance_(x1, x2)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Training ViT recognition model')
@@ -95,10 +98,10 @@ def main():
         logging.info(f"Pytorch Distributed Data Parallel activated using gpus: {gpu_ids}")
     if torch.cuda.is_available():
         base_model = base_model.cuda()
-    optimizer = torch.optim.SGD(base_model.parameters(), lr=float(conf.TRAIN.base_lr), momentum=0.9)
+    optimizer = torch.optim.Adam(base_model.parameters(), lr=float(conf.TRAIN.base_lr))
     scheduler = lr_scheduler.StepLR(optimizer, step_size=int(conf.TRAIN.step_lr), gamma=float(conf.TRAIN.weight_decay))
     best_loss = float('inf')
-    logging.info(f"Optimizer: Adam , Criterion: Cross entropy loss , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
+    logging.info(f"Optimizer: Adam , Criterion: {conf.TRAIN.loss} , lr: {conf.TRAIN.base_lr} , decay: {conf.TRAIN.weight_decay}")
     num_epochs = int(conf.TRAIN.epochs)
     phase_error = {'train': 0., 'val': 0.}    
     for epoch in range(num_epochs):

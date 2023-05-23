@@ -12,15 +12,20 @@ from torch.utils.data.dataset import Dataset
 from torchvision import transforms
 from tools.utils import *
 
-def img_transform():
+def img_transform(is_4D=True):
     """Implementation of callable transform function.
 
     Returns:
         callable: transform the input volume by changing time dim and adding channel dim.
     """
-    return transforms.Compose([
-            transforms.Lambda(lambda x: x.permute(3,0,1,2).unsqueeze(0))
-        ])
+    if is_4D:
+        return transforms.Compose([
+                transforms.Lambda(lambda x: x.permute(3,0,1,2).unsqueeze(0))
+            ])
+    else:
+        return transforms.Compose([
+                transforms.Lambda(lambda x: x.unsqueeze(0))
+            ])
 
 class IMode(Enum):
     """ An enumeration representing the possible input modes for the model."""
@@ -45,6 +50,7 @@ class ScepterViTDataset(Dataset):
         normalization_dim (Union[None, int], optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
         stablize (bool, optional): Compute absolute value of tensor. Defaults to False.
         inp_mode (str, optional): Mode of input data which can be either fMRI or ICA. Defaults to 'fMRI'.
+        data_shape (bool, optional): rearange the shape of input/output data to original shape. Defaults to True.
         valid_ids (Union[None, List[int,]], optional): Index of verified ICA components. Defaults to None.
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
         task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
@@ -63,6 +69,7 @@ class ScepterViTDataset(Dataset):
                  normalization_dim: Union[None, int] = 1,
                  stablize = False,
                  inp_mode = 'fMRI',
+                 data_shape = True,
                  valid_ids: Union[None, List[int,]] = None,
                  transform = False,
                  task='Recognition'):
@@ -79,8 +86,9 @@ class ScepterViTDataset(Dataset):
         self.norm_dim = normalization_dim
         self.stablize = stablize
         self.mode = IMode(inp_mode)
+        self.rearange_data = data_shape
         self.verified_networks = valid_ids
-        self.transform = img_transform() if transform else None 
+        self.transform = img_transform(is_4D=data_shape) if transform else None 
         self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
@@ -101,7 +109,8 @@ class ScepterViTDataset(Dataset):
                                 norm_dim=self.norm_dim,
                                 scale=self.scaling,
                                 time_slice=self.time_bound,
-                                step_size=self.sampling_rate)
+                                step_size=self.sampling_rate,
+                                rearange=self.rearange_data)
         elif self.mode == IMode.ica:
             self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
             img_dir = img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
@@ -110,13 +119,14 @@ class ScepterViTDataset(Dataset):
                                  valid_networks=self.verified_networks,
                                  stablize=self.stablize,
                                  time_slice=self.time_bound,
-                                 step_size=self.sampling_rate)
+                                 step_size=self.sampling_rate,
+                                 rearange=self.rearange_data)
+        if self.rearange_data:
+            img = img.get_fdata() # type: ignore
+        return torch.from_numpy(img).float()
 
-        proc_data = img.get_fdata() # type: ignore
-        return torch.from_numpy(proc_data).float()
-
-    def _load_label(self, sample_idx: int) -> torch.Tensor:
-        """Load label of each sample and convert to a tensor.
+    def _load_label_or_prior(self, sample_idx: int) -> torch.Tensor:
+        """Load label/prior of each sample and convert to a tensor.
 
         Args:
             sample_idx (int): Index of a subject in dataset.
@@ -144,7 +154,7 @@ class ScepterViTDataset(Dataset):
 
     def __getitem__(self, idx):
         img = self._load_img(idx)
-        label = self._load_label(idx)        
+        label = self._load_label_or_prior(idx)        
         if self.transform:
             img = self.transform(img)
         return img, label

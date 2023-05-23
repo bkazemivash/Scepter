@@ -1,5 +1,5 @@
 EXPERIMENT:
-  tag: Recognition
+  tag: DensePrediction
   name: dp_ViT_space_time
   edition: 1
   type: ViT
@@ -8,9 +8,9 @@ MODEL:
   img_size: [53, 63, 52]
   patch_size: 7
   in_chans: 1
-  n_classes: 3
+  n_score_maps: 2
   embed_dim: 768
-  depth: 2
+  depth: 1
   n_heads: 12
   mlp_ratio: 1
   qkv_bias: True
@@ -29,21 +29,22 @@ DATASET:
   normalization_dim: all
   stablize: True
   inp_mode: fMRI
+  data_shape: False
   valid_ids: [9, 2]
   transform: True
   task: DensePrediction
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 1e-5
+  base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.5
-  step_lr: 200
+  step_lr: 50
   batch_size: 2
   workers: 2
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: Pearson_Correlation
+  loss: MSE
 TEST:
   test_size: 1
   test_workers: 0

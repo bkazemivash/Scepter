@@ -94,7 +94,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     norm_dim: Union[None, int, str] = None,
                     scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0,
-                    step_size=1) -> Nifti1Image:
+                    step_size=1,
+                    rearange = True) -> Nifti1Image:
     """ Mask, z-score, and scale input fMRI image.
 
     Args:
@@ -106,6 +107,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
+        rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to True.
 
     Raises:
         TypeError: If 'inp_img' is not a Niimg-like object.
@@ -131,7 +133,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if norm_dim:
         axis_ = None if norm_dim == 'all' else int(norm_dim)
         data_ = stats.zscore(data_, axis=axis_) # type: ignore
-    data_ = unmask(data_, mask_img)
+    if rearange:
+        data_ = unmask(data_, mask_img)
     return data_   # type: ignore
 
 
