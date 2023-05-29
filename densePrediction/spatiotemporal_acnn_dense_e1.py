@@ -16,7 +16,7 @@ class StemUnit(nn.Module):
                  enable_activation=True) -> None:
         super().__init__()
         self.proj = nn.Conv2d(in_ch, embed_dim, kernel_size=1, bias=enable_bias)
-        self.act = nn.ELU() if enable_activation else nn.Identity()
+        self.act = nn.Sigmoid() if enable_activation else nn.Identity()
 
     def forward(self, x):
         x = self.act(x)
@@ -149,4 +149,3 @@ class ScepterAtrousPyramidEncoder(nn.Module):
         x = self.drop(x)
         x = self.head(x).permute(0,2,3,1)
         return x
-
