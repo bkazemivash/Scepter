@@ -9,7 +9,8 @@ from torch.nn import CrossEntropyLoss, CosineSimilarity, BCEWithLogitsLoss, MSEL
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
-from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
+# from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
+from densePrediction.spatiotemporal_acnn_dense_e1 import ScepterAtrousPyramidEncoder
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
@@ -91,7 +92,8 @@ def main():
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
-    base_model = ScepterVisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
+    # base_model = ScepterVisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
+    base_model = ScepterAtrousPyramidEncoder(**conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
         base_model = DataParallel(base_model, device_ids = gpu_ids)

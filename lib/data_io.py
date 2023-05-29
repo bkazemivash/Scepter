@@ -41,13 +41,11 @@ class ScepterViTDataset(Dataset):
         dataset_name (str): Name of dataset.
         mask_file (str): Path to mask file.
         image_size (Tuple[int,...]): Size of each fMRI image.
-        min_max_scale (Union[None, Tuple[int, int]], optional): If not None, set lower and upper bound of scaling. Defaults to None.
         clean_up (bool, optional): if True, apply noise cleaning procedure. Bandpass filter and detrending. Defaults to False.
         smooth (bool, optional): if True, apply guassian filter on the image. Defaults to False.
         imbalanced_flag (bool, optional): True if dataset is imbalanced otherwise False. Defaults to False.
         n_timepoint (int, optional): Number of timepoints or a slice of them. Defaults to 100.
         sampling_rate (int, optional): Sampling rate of timepoints. Defaults to 1.
-        normalization_dim (Union[None, int], optional): If 1 timepoint-wise, 0 for voxel-wise. Defaults to 1.
         stablize (bool, optional): Compute absolute value of tensor. Defaults to False.
         inp_mode (str, optional): Mode of input data which can be either fMRI or ICA. Defaults to 'fMRI'.
         data_shape (bool, optional): rearange the shape of input/output data to original shape. Defaults to True.
@@ -55,21 +53,19 @@ class ScepterViTDataset(Dataset):
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
         task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
     """   
-    def __init__(self, 
+    def __init__(self,
                  image_list_file: str,
                  dataset_name: str,
                  mask_file: str,
                  image_size: Tuple[int,...],
-                 min_max_scale: Union[None, Tuple[int, int]] = None,
                  clean_up = False,
                  smooth = False,
                  imbalanced_flag = False,
                  n_timepoint = 100,
                  sampling_rate = 1,
-                 normalization_dim: Union[None, int] = 1,
                  stablize = False,
                  inp_mode = 'fMRI',
-                 data_shape = True,
+                 keep_shape = True,
                  valid_ids: Union[None, List[int,]] = None,
                  transform = False,
                  task='Recognition'):
@@ -77,18 +73,16 @@ class ScepterViTDataset(Dataset):
         self.dataset_name = dataset_name
         self.mask_img = mask_file
         self.image_size = image_size
-        self.scaling = min_max_scale
         self.clean_noise = clean_up
         self.smoothing = smooth
         self.imbalanced_weights = compute_class_weights(self.info_dataframe.Diagnosis) if imbalanced_flag else None
         self.time_bound = n_timepoint
         self.sampling_rate = sampling_rate
-        self.norm_dim = normalization_dim
         self.stablize = stablize
         self.mode = IMode(inp_mode)
-        self.rearange_data = data_shape
+        self.keep_shape = keep_shape
         self.verified_networks = valid_ids
-        self.transform = img_transform(is_4D=data_shape) if transform else None 
+        self.transform = img_transform(is_4D=keep_shape) if transform else None 
         self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
@@ -106,11 +100,9 @@ class ScepterViTDataset(Dataset):
                                 mask_img=self.mask_img,
                                 denoise=self.clean_noise,
                                 blur=self.smoothing,
-                                norm_dim=self.norm_dim,
-                                scale=self.scaling,
                                 time_slice=self.time_bound,
                                 step_size=self.sampling_rate,
-                                rearange=self.rearange_data)
+                                rearange=self.keep_shape)
         elif self.mode == IMode.ica:
             self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
             img_dir = img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
@@ -120,10 +112,13 @@ class ScepterViTDataset(Dataset):
                                  stablize=self.stablize,
                                  time_slice=self.time_bound,
                                  step_size=self.sampling_rate,
-                                 rearange=self.rearange_data)
-        if self.rearange_data:
-            img = img.get_fdata() # type: ignore
-        return torch.from_numpy(img).float()
+                                 mix_it=True,
+                                 rearange=self.keep_shape)
+        if isinstance(img, Nifti1Image):
+            img = img.get_fdata()
+        if isinstance(img, np.ndarray):
+            img = torch.from_numpy(img)
+        return img.float()
 
     def _load_label_or_prior(self, sample_idx: int) -> torch.Tensor:
         """Load label/prior of each sample and convert to a tensor.
@@ -139,13 +134,14 @@ class ScepterViTDataset(Dataset):
             return torch.tensor(self.class_dict[status], dtype=torch.long)
         else:
             self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
-            img_dir = img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
+            img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
             img = ica_mixture(inp_mat_file=img_dir,
                                  mask_img=self.mask_img,
                                  valid_networks=self.verified_networks,
                                  stablize=self.stablize,
                                  time_slice=self.time_bound,
                                  step_size=self.sampling_rate,
+                                 mix_it=False,
                                  rearange=False)
             return img.float() # type: ignore
 

@@ -91,11 +91,9 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
                     mask_img: str,
                     denoise: bool = False,
                     blur: bool = False,
-                    norm_dim: Union[None, int, str] = None,
-                    scale: Union[None, Tuple[int, int]] = None,
                     time_slice =0,
                     step_size=1,
-                    rearange = True) -> Nifti1Image:
+                    rearange = True) -> Union[Nifti1Image, np.ndarray]:
     """ Mask, z-score, and scale input fMRI image.
 
     Args:
@@ -103,8 +101,6 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         mask_img (str): Path to a 3D Niimg-like mask object.
         denoise (bool): If True, performs denoising procedure for fMRI data. Defaults to False.
         blur (bool): If True, perform gaussian filter on the image. Defaults to False.
-        norm_dim (Union[None, int, str], optional): Z-score by a specific axis; 0 for voxel-wise(fMRI), 1 for timepoint-wise(fMRI), 'all' for whole image. Defaults to None.
-        scale (Union[None, Tuple[int, int]], optional): True if scaling is needed range: [lower, upper]. Defaults to None.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
         rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to True.
@@ -113,7 +109,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         TypeError: If 'inp_img' is not a Niimg-like object.
 
     Returns:
-        Nifti1Image: a 4D Niimg-like object.
+        Union[Nifti1Image, np.ndarray]: a 4D Niimg-like object or ndarray of shape #timepoints by #voxel.
     """    
     if ((not isinstance(inp_img, Nifti1Image)) and (isinstance(inp_img, str) and not (inp_img.lower().endswith(('.nii', '.nii.gz'))))):
         raise TypeError("Input image is not a Nifti file, please check your input!") 
@@ -123,19 +119,14 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if time_slice > 0:
         original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data_ = apply_mask(original_img, mask_img)
-    if scale:
-        data_ = scale_array(data_, lb=scale[0], ub=scale[1], ax=-1)
     if denoise:
-        data_ -= data_.mean(axis=1)[...,np.newaxis]
         data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
-    if norm_dim:
-        axis_ = None if norm_dim == 'all' else int(norm_dim)
-        data_ = stats.zscore(data_, axis=axis_) # type: ignore
+    data_ = (data_ - data_.mean()) / data_.std()
     if rearange:
         data_ = unmask(data_, mask_img)
-    return data_   # type: ignore
+    return data_  # type: ignore
 
 
 def path_correction(inp_path: str) -> tuple[str, str]:
@@ -159,7 +150,8 @@ def ica_mixture(inp_mat_file: str,
                    stablize = False,
                    time_slice = 0,
                    step_size = 1,
-                   rearange = True) -> Union[Nifti1Image, torch.Tensor]:
+                   mix_it = False,
+                   rearange = False) -> Union[Nifti1Image, torch.Tensor]:
     """Preprocess ICA time-courses and spatial maps.
 
     Args:
@@ -169,7 +161,8 @@ def ica_mixture(inp_mat_file: str,
         stablize (bool, optional): Get absolute value of data. Dafaults to False.
         time_slice (int, optional): Slice of timepoints. Defaults to 0.
         step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
-        rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to True.
+        mix_it (bool, optional): generating mixture of all components/timepoits. Defaults to False.
+        rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to False.
 
     Returns:
         Union[Nifti1Image, torch.Tensor]: a 4D Niimg-like object or processed ICA components.
@@ -182,12 +175,15 @@ def ica_mixture(inp_mat_file: str,
     if time_slice>0:
         totall_timepoints = time_slice * step_size
         steper = slice(0, totall_timepoints, step_size)
-    command_ = 'bp,pq->bq' if rearange else 'bp,pq->bqp'
+    command_ = 'bp,pq->bq' if mix_it else 'bp,pq->bqp'
     data_ = torch.einsum(command_, temporal_data[steper, valid_idx], spatial_data[valid_idx,:])    
+    data_ = data_.abs()
+    data_ = 0.999 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) + 0.001
     if stablize:
-        data_ = data_.abs()
-    data_ -= data_.mean(dim=(0,1))
+        data_ -= data_.mean(dim=(0,1))
+        data_ /= data_.std(dim=(0,1))
     if rearange:
+        assert len(data_.shape) == 2, 'Invalid shape of tensor, it must be 2D or 1D array.'
         data_ = unmask(data_, mask_img)
     return data_   # type: ignore
 

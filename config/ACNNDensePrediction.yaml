@@ -12,19 +12,17 @@ MODEL:
   is_active: True
   encoder_type: 'space_time_general_view'
   atrous_bias: True
-  blk_p: 0.
-  p: 0.
+  blk_p: 0.1
+  p: 0.1
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  min_max_scale: null
-  clean_up: True
+  clean_up: False
   smooth: False
   imbalanced_flag: False
-  n_timepoint: 20
-  sampling_rate: 5
-  normalization_dim: all
-  stablize: True
+  n_timepoint: 25
+  sampling_rate: 4
+  stablize: False
   inp_mode: fMRI
   data_shape: False
   valid_ids: [9, 2]
@@ -36,9 +34,9 @@ TRAIN:
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.5
-  step_lr: 50
-  batch_size: 2
-  workers: 2
+  step_lr: 100
+  batch_size: 10
+  workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
   loss: MSE
