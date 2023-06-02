@@ -12,11 +12,11 @@ class StemUnit(nn.Module):
     def __init__(self, 
                  in_ch=1, 
                  embed_dim=16,
-                 enable_bias=False,
-                 is_bottleneck=False) -> None:
+                 enable_bias=True,
+                 enable_activation=True) -> None:
         super().__init__()
         self.proj = nn.Conv2d(in_ch, embed_dim, kernel_size=1, bias=enable_bias)
-        self.act = nn.ReLU6() if is_bottleneck else nn.GELU()
+        self.act = nn.Sigmoid() if enable_activation else nn.Identity()
 
     def forward(self, x):
         x = self.proj(x)
@@ -32,7 +32,7 @@ class GlobalView(nn.Module):
 
         self.norm = nn.BatchNorm2d(embed_dim)
         self.pool = nn.AvgPool2d(2)
-        self.act = nn.GELU()
+        self.act = nn.Sigmoid()
 
     def forward(self, x):
         _, _, t, v = x.shape
@@ -52,7 +52,7 @@ class AtrousFullyPreactivatedResidualUnit(nn.Module):
         
         super().__init__()
         self.norm1 = nn.BatchNorm2d(embed_dim)
-        self.act = nn.GELU()
+        self.act = nn.Sigmoid()
         self.stage1 = nn.Conv2d(in_ch, embed_dim, atrous_unit_kernel, bias=atrous_bias, padding=atrous_ratio, dilation=atrous_ratio)
         self.norm2 = nn.BatchNorm2d(embed_dim)
         self.stage2 = nn.Conv2d(in_ch, embed_dim, atrous_unit_kernel, bias=atrous_bias, padding=atrous_ratio, dilation=atrous_ratio)
@@ -74,13 +74,13 @@ class FullyPreactivatedBaseUnit(nn.Module):
                  unit_p=0.) -> None:        
         super().__init__()
         self.norm = nn.BatchNorm2d(embed_dim)
-        self.act = nn.GELU()
+        self.act = nn.Sigmoid()
         self.stage = nn.Conv2d(in_ch, embed_dim, unit_kernel, bias=unit_bias, padding=1,)
         self.drop = nn.Dropout2d(unit_p)
 
     def forward(self, x):
         x = self.act(self.norm(x))
-        x = x + self.stage(x)
+        x = self.stage(x)
         x = self.drop(x)
         return x
 
@@ -91,14 +91,15 @@ class ScepterAtrousPyramidEncoder(nn.Module):
                  in_ch=1,
                  dim=16,
                  head_dim=53,
+                 is_active=True,
                  encoder_type='space_time_general_view',
-                 atrous_bias=False, 
+                 atrous_bias=True, 
                  blk_p=0.,
                  p=0.) -> None:
         super().__init__()      
         self.encoder = encoder_type
         self.depth = depth
-        self.entry = StemUnit(in_ch, dim, False,)
+        self.entry = StemUnit(in_ch, dim, is_active,)
         if encoder_type == 'space_time_general_view':
             self.enc_blocks = nn.ModuleList(
                 [
@@ -131,7 +132,7 @@ class ScepterAtrousPyramidEncoder(nn.Module):
         self.drop = nn.Dropout2d(p)
         self.head = StemUnit(in_ch=dim if encoder_type == 'space_time_general_view' else dim*(depth+1), 
                              embed_dim=head_dim, 
-                             is_bottleneck=True,
+                             enable_activation=True,
                              enable_bias=False)
 
     

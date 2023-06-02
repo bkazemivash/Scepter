@@ -5,20 +5,19 @@ EXPERIMENT:
   type: ACNN
   save_model: True
 MODEL:
-  depth: 3
+  depth: 7
   in_ch: 1
   dim: 4
   head_dim: 2
-  is_active: True
   encoder_type: 'space_time_general_view'
-  atrous_bias: True
+  atrous_bias: False
   blk_p: 0.
   p: 0.
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: False
-  smooth: False
+  clean_up: True
+  smooth: True
   imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4

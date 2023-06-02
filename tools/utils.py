@@ -120,10 +120,11 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data_ = apply_mask(original_img, mask_img)
     if denoise:
-        data_ = butter_bandpass_filter(data_, [0.02, 0.15], .5)
+        data_ = butter_bandpass_filter(data_, [0.02, 0.12], .5)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
-    data_ = (data_ - data_.mean()) / data_.std()
+    # data_ = (data_ - data_.mean()) / data_.std()
+    data_ -= data_.mean(axis=1)[:,None]
     if rearange:
         data_ = unmask(data_, mask_img)
     return data_  # type: ignore

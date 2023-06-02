@@ -8,35 +8,34 @@ MODEL:
   depth: 3
   in_ch: 1
   dim: 4
-  head_dim: 2
-  is_active: True
+  head_dim: 1
   encoder_type: 'space_time_general_view'
-  atrous_bias: True
-  blk_p: 0.1
-  p: 0.1
+  atrous_bias: False
+  blk_p: 0.
+  p: 0.
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: False
-  smooth: False
+  clean_up: True
+  smooth: True
   imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4
   stablize: False
   inp_mode: fMRI
-  data_shape: False
-  valid_ids: [9, 2]
+  keep_shape: False
+  valid_ids: [9]
   transform: True
   task: DensePrediction
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 1e-3
+  base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.5
   step_lr: 100
-  batch_size: 10
-  workers: 4
+  batch_size: 20
+  workers: 2
   warmup_epochs: 0
   warmup_lr: 1e-2
   loss: MSE
