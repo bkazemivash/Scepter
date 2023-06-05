@@ -16,23 +16,24 @@ MODEL:
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: True
+  clean_up: False
   smooth: True
   imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4
   stablize: False
   inp_mode: fMRI
-  keep_shape: False
-  valid_ids: [9, 2]
+  keep_shape: True
+  has_input_channel: False
+  valid_ids: [9]
   transform: True
   task: DensePrediction
 TRAIN:
   epochs: 500
   early_stop: False
-  base_lr: 1e-3
+  base_lr: 1e-2
   min_lr: 1e-8
-  weight_decay: 0.5
+  weight_decay: 0.1
   step_lr: 100
   batch_size: 10
   workers: 4

@@ -16,7 +16,7 @@ class StemUnit(nn.Module):
                  is_bottleneck=False) -> None:
         super().__init__()
         self.proj = nn.Conv2d(in_ch, embed_dim, kernel_size=1, bias=enable_bias)
-        self.act = nn.ReLU6() if is_bottleneck else nn.GELU()
+        self.act = nn.GELU() if is_bottleneck else nn.ReLU()
 
     def forward(self, x):
         x = self.proj(x)

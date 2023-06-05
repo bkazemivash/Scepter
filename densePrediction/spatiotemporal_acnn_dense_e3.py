@@ -34,9 +34,9 @@ class FullyPreactivatedResidualUnit(nn.Module):
         super().__init__()
         self.norm1 = nn.BatchNorm3d(embed_dim)
         self.act = nn.Sigmoid()
-        self.stage1 = nn.Conv3d(in_ch, embed_dim, 3, bias=blk_bias, padding=1, groups=in_ch)
+        self.stage1 = nn.Conv3d(in_ch, embed_dim, 1, bias=blk_bias, groups=in_ch)
         self.norm2 = nn.BatchNorm3d(embed_dim)
-        self.stage2 = nn.Conv3d(in_ch, embed_dim, 3, bias=blk_bias, padding=1, groups=in_ch)
+        self.stage2 = nn.Conv3d(in_ch, embed_dim, 1, bias=blk_bias, groups=in_ch)
         self.drop = nn.Dropout3d(blk_p)
 
     def forward(self, x):

@@ -12,20 +12,18 @@ from torch.utils.data.dataset import Dataset
 from torchvision import transforms
 from tools.utils import *
 
-def img_transform(is_4D=True):
+def img_transform(is_4D=True, has_inp_ch=True):
     """Implementation of callable transform function.
 
     Returns:
         callable: transform the input volume by changing time dim and adding channel dim.
     """
+    transformation_queue = []    
     if is_4D:
-        return transforms.Compose([
-                transforms.Lambda(lambda x: x.permute(3,0,1,2).unsqueeze(0))
-            ])
-    else:
-        return transforms.Compose([
-                transforms.Lambda(lambda x: x.unsqueeze(0))
-            ])
+        transformation_queue.append(transforms.Lambda(lambda x: x.permute(3,0,1,2)))
+    if has_inp_ch:
+        transformation_queue.append(transforms.Lambda(lambda x: x.unsqueeze(0)))
+    return transforms.Compose(transformation_queue)
 
 class IMode(Enum):
     """ An enumeration representing the possible input modes for the model."""
@@ -66,6 +64,7 @@ class ScepterViTDataset(Dataset):
                  stablize = False,
                  inp_mode = 'fMRI',
                  keep_shape = True,
+                 has_input_channel = True,
                  valid_ids: Union[None, List[int,]] = None,
                  transform = False,
                  task='Recognition'):
@@ -82,7 +81,7 @@ class ScepterViTDataset(Dataset):
         self.mode = IMode(inp_mode)
         self.keep_shape = keep_shape
         self.verified_networks = valid_ids
-        self.transform = img_transform(is_4D=keep_shape) if transform else None 
+        self.transform = img_transform(is_4D=keep_shape, has_inp_ch=has_input_channel) if transform else None 
         self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
@@ -142,8 +141,12 @@ class ScepterViTDataset(Dataset):
                                  time_slice=self.time_bound,
                                  step_size=self.sampling_rate,
                                  mix_it=False,
-                                 rearange=False)
-            return img.float() # type: ignore
+                                 rearange=self.keep_shape)
+        if isinstance(img, Nifti1Image):
+            img = img.get_fdata()
+        if isinstance(img, np.ndarray):
+            img = torch.from_numpy(img)            
+        return img.float() # type: ignore
 
     def __len__(self):
         return len(self.info_dataframe)

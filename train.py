@@ -5,12 +5,11 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CrossEntropyLoss, CosineSimilarity, BCEWithLogitsLoss, MSELoss
+from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
-# from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
-from densePrediction.spatiotemporal_acnn_dense_e1 import ScepterAtrousPyramidEncoder
+from densePrediction.spatiotemporal_acnn_dense_e3 import ScepterVoxelwiseEncoder
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
@@ -37,11 +36,7 @@ def criterion(x1: torch.Tensor,
             entropy = BCEWithLogitsLoss(weight=sample_weight) 
         return entropy(x1, x2)
     else:
-        # x1, x2 = x1.flatten(1), x2.flatten(1)
-        # cos = CosineSimilarity(dim=1, eps=1e-6)
-        # pearson = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-        # return pearson.sum()
-        distance_ = MSELoss()
+        distance_ = MSELoss(reduction='sum')
         return distance_(x1, x2)
 
 
@@ -92,8 +87,7 @@ def main():
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
-    # base_model = ScepterVisionTransformer(n_timepoints=main_dataset.time_bound, **conf.MODEL)
-    base_model = ScepterAtrousPyramidEncoder(**conf.MODEL)
+    base_model = ScepterVoxelwiseEncoder(**conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
         base_model = DataParallel(base_model, device_ids = gpu_ids)

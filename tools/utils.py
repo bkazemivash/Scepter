@@ -28,7 +28,11 @@ def weights_init(m: nn.Module) -> None:
         nn.init.xavier_normal_(m.weight.data)
         if m.bias is not None:
             nn.init.constant_(m.bias.data, 0)
-    elif isinstance(m, nn.BatchNorm3d):
+    elif isinstance(m, (nn.Conv2d,)):
+        nn.init.xavier_normal_(m.weight.data, gain=.8)
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)            
+    elif isinstance(m, (nn.BatchNorm3d, nn.BatchNorm2d)):
         nn.init.constant_(m.weight.data, 1)
         nn.init.constant_(m.bias.data, 0)
     elif isinstance(m, nn.Linear):
@@ -123,8 +127,8 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
         data_ = butter_bandpass_filter(data_, [0.02, 0.12], .5)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
-    # data_ = (data_ - data_.mean()) / data_.std()
-    data_ -= data_.mean(axis=1)[:,None]
+    # data_ -= data_.mean(axis=1)[:,None]
+    data_ = (data_ - data_.mean()) / data_.std()
     if rearange:
         data_ = unmask(data_, mask_img)
     return data_  # type: ignore
@@ -178,13 +182,14 @@ def ica_mixture(inp_mat_file: str,
         steper = slice(0, totall_timepoints, step_size)
     command_ = 'bp,pq->bq' if mix_it else 'bp,pq->bqp'
     data_ = torch.einsum(command_, temporal_data[steper, valid_idx], spatial_data[valid_idx,:])    
-    data_ = data_.abs()
-    data_ = 0.999 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) + 0.001
     if stablize:
         data_ -= data_.mean(dim=(0,1))
         data_ /= data_.std(dim=(0,1))
+    else:
+        data_ = data_.abs()
+        data_ = 0.999 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) + 0.001
     if rearange:
-        assert len(data_.shape) == 2, 'Invalid shape of tensor, it must be 2D or 1D array.'
+        data_ = data_.squeeze()
         data_ = unmask(data_, mask_img)
     return data_   # type: ignore
 
