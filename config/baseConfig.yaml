@@ -5,23 +5,23 @@ EXPERIMENT:
   type: ACNN
   save_model: True
 MODEL:
-  depth: 7
-  in_ch: 1
-  dim: 4
-  head_dim: 2
-  encoder_type: 'space_time_general_view'
-  atrous_bias: False
+  depth: 3
+  in_ch: 25
+  head_dim: 25
+  is_active: True
+  encoder_type: 'space_time_mixture'
+  use_bias: False
   blk_p: 0.
   p: 0.
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: False
+  clean_up: True
   smooth: True
   imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4
-  stablize: False
+  stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: False

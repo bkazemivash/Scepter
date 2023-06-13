@@ -5,23 +5,23 @@ EXPERIMENT:
   type: ACNN
   save_model: True
 MODEL:
-  depth: 12
+  depth: 3
   in_ch: 25
   head_dim: 25
   is_active: True
-  encoder_type: 'space_time_general_view'
-  use_bias: False
-  blk_p: 0.1
-  p: 0.
+  encoder_type: 'space_time_mixture'
+  use_bias: True
+  blk_p: 0.3
+  p: 0.1
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: False
+  clean_up: True
   smooth: True
   imbalanced_flag: False
   n_timepoint: 25
   sampling_rate: 4
-  stablize: False
+  stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: False
@@ -29,17 +29,17 @@ DATASET:
   transform: True
   task: DensePrediction
 TRAIN:
-  epochs: 500
+  epochs: 200
   early_stop: False
-  base_lr: 1e-2
+  base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 100
-  batch_size: 10
+  batch_size: 15
   workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: MSE
+  loss: Correlation
 TEST:
   test_size: 1
   test_workers: 0
