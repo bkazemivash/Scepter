@@ -123,12 +123,14 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     if time_slice > 0:
         original_img = index_img(inp_img, slice(0, totall_timepoints, step_size)) # type: ignore    
     data_ = apply_mask(original_img, mask_img)
-    if denoise:
-        data_ = butter_bandpass_filter(data_, [0.02, 0.12], .5)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
-    # data_ -= data_.mean(axis=1)[:,None]
-    data_ = (data_ - data_.mean()) / data_.std()
+    if denoise:
+        # data_ = butter_bandpass_filter(data_, [0.02, 0.12], .5)
+        data_ = (data_ - data_.mean()) / data_.std()
+        cutoff = [data_.mean() - (3. * data_.std()), data_.mean() + (3. * data_.std())]
+        data_[(data_>cutoff[1]) | (data_<cutoff[0])] = 0.
+    data_ = 5.999 * (data_ - data_.min()) / (data_.max() - data_.min()) + .001
     if rearange:
         data_ = unmask(data_, mask_img)
     return data_  # type: ignore
@@ -181,13 +183,11 @@ def ica_mixture(inp_mat_file: str,
         totall_timepoints = time_slice * step_size
         steper = slice(0, totall_timepoints, step_size)
     command_ = 'bp,pq->bq' if mix_it else 'bp,pq->bqp'
-    data_ = torch.einsum(command_, temporal_data[steper, valid_idx], spatial_data[valid_idx,:])    
+    data_ = torch.einsum(command_, temporal_data[steper, valid_idx], spatial_data[valid_idx,:])
+    data_ = data_ - data_.mean(dim=(0,1)) / data_.std(dim=(0,1))
     if stablize:
-        data_ -= data_.mean(dim=(0,1))
-        data_ /= data_.std(dim=(0,1))
-    else:
         data_ = data_.abs()
-        data_ = 0.999 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) + 0.001
+        data_ = 5.999 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) + 0.001
     if rearange:
         data_ = data_.squeeze()
         data_ = unmask(data_, mask_img)

@@ -5,39 +5,48 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss
+from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss, CosineSimilarity
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
-from densePrediction.spatiotemporal_acnn_dense_e3 import ScepterVoxelwiseEncoder
+from densePrediction.spatiotemporal_acnn_dense_e1 import ScepterVoxelwiseEncoder
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
 def criterion(x1: torch.Tensor, 
               x2: torch.Tensor, 
-              task='Recognition', 
-              sample_weight=None) -> torch.Tensor:
+              loss_function: str = 'MSE', 
+              **kwargs) -> torch.Tensor:
     """Computes loss value based on the defined task.
 
     Args:
         x1 (torch.Tensor): Output of the model.
         x2 (torch.Tensor): Target value.
-        task (str, optional): Type of experiment ['Recognition', 'DensePrediction']. Defaults to 'Recognition'.
-        sample_weight (torch.Tensor, optional): Class weights in case of imbalanced dataset. Defaults to None.
+        loss_function (str, optional): Type of criterion being applied. Defaults to 'MSE'.
+        **kwargs: Arbitrary keyword arguments.
 
     Returns:
         torch.Tensor: Loss value of given tensors.
     """ 
-    if task == 'Recognition':
-        entropy = CrossEntropyLoss(weight=sample_weight)
+    if loss_function == 'CrossEntropy':
+        weights_ = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
+        metric = CrossEntropyLoss(weight=weights_)
         if x1.shape[1] == 1:
             x1 = x1.squeeze()
             x2 = x2.float()
-            entropy = BCEWithLogitsLoss(weight=sample_weight) 
-        return entropy(x1, x2)
+            metric = BCEWithLogitsLoss(weight=weights_) 
+        return metric(x1, x2)
+    elif loss_function == 'CosineSimilarity':
+        cos = CosineSimilarity(dim=1, eps=1e-6)
+        metric = 1. - cos(x1, x2)
+        return metric
+    elif loss_function == 'Correlation':
+        cos = CosineSimilarity(dim=1, eps=1e-6)
+        metric = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
+        return metric
     else:
-        distance_ = MSELoss(reduction='sum')
-        return distance_(x1, x2)
+        metric = MSELoss(reduction='mean')
+        return metric(x1, x2)
 
 
 def main():
@@ -113,7 +122,7 @@ def main():
                 with torch.set_grad_enabled(phase == 'train'):
                     optimizer.zero_grad()
                     preds = base_model(inp)
-                    loss = criterion(preds, label, experiment_tag, main_dataset.imbalanced_weights)
+                    loss = criterion(preds, label, conf.TRAIN.loss)
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
