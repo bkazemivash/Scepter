@@ -16,7 +16,7 @@ class ProjectionUnit(nn.Module):
                  enable_activation=True) -> None:
         super().__init__()
         self.proj = nn.Conv3d(in_ch, embed_dim, kernel_size=1, bias=enable_bias)
-        self.act = nn.ReLU6() if enable_activation else nn.Sigmoid()
+        self.act = nn.ReLU6() if enable_activation else nn.Identity()
 
     def forward(self, x):
         x = self.proj(x)
@@ -33,7 +33,7 @@ class FullyPreactivatedResidualUnit(nn.Module):
         
         super().__init__()
         self.norm1 = nn.BatchNorm3d(embed_dim)
-        self.act = nn.ReLU6()
+        self.act = nn.ELU()
         self.stage1 = nn.Conv3d(in_ch, embed_dim, 1, bias=blk_bias, groups=in_ch)
         self.norm2 = nn.BatchNorm3d(embed_dim)
         self.stage2 = nn.Conv3d(in_ch, embed_dim, 1, bias=blk_bias, groups=in_ch)

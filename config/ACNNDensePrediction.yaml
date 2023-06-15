@@ -5,7 +5,7 @@ EXPERIMENT:
   type: ACNN
   save_model: True
 MODEL:
-  depth: 3
+  depth: 9
   in_ch: 25
   head_dim: 25
   is_active: True
@@ -31,7 +31,7 @@ DATASET:
 TRAIN:
   epochs: 200
   early_stop: False
-  base_lr: 1e-3
+  base_lr: 1e-5
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 100
@@ -39,7 +39,7 @@ TRAIN:
   workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: Correlation
+  loss: MSE
 TEST:
   test_size: 1
   test_workers: 0
