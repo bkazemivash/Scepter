@@ -11,7 +11,7 @@ MODEL:
   depth: 9
   encoder_type: 'space_time_mixture'
   head_dim: [53, 63, 52]
-  p: 0.
+  p: 0.1
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
@@ -28,12 +28,12 @@ DATASET:
   transform: True
   task: DensePrediction
 TRAIN:
-  epochs: 200
+  epochs: 1000
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 100
+  step_lr: 600
   batch_size: 15
   workers: 4
   warmup_epochs: 0

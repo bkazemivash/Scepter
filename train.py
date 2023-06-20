@@ -9,7 +9,7 @@ from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss, CosineSimilar
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
-from densePrediction.spatiotemporal_acnn_dense_e1 import ScepterVoxelwiseEncoder
+from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
@@ -45,7 +45,7 @@ def criterion(x1: torch.Tensor,
         metric = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
         return metric
     else:
-        metric = MSELoss(reduction='mean')
+        metric = MSELoss(reduction='sum')
         return metric(x1, x2)
 
 
@@ -96,7 +96,7 @@ def main():
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
-    base_model = ScepterVoxelwiseEncoder(**conf.MODEL)
+    base_model = ScepterConvMixer(**conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
         base_model = DataParallel(base_model, device_ids = gpu_ids)

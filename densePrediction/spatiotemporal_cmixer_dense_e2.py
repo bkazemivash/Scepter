@@ -46,12 +46,12 @@ class EncoderBlock(nn.Module):
         self.depthwise_enc = nn.Sequential(
                                     nn.Conv3d(dim, dim, kernel_size, groups=dim, padding="same"),
                                     nn.GELU(),
-                                    nn.BatchNorm3d(dim),                                
+                                    nn.BatchNorm3d(dim)
                                     )
         self.pointwise_enc = nn.Sequential(
                                     nn.Conv3d(dim, dim, kernel_size=1),
                                     nn.GELU(),
-                                    nn.BatchNorm3d(dim),                                                                                                                                                      
+                                    nn.BatchNorm3d(dim)
                                     )
         self.pos_drop = nn.Dropout(enc_p)
 
@@ -60,11 +60,11 @@ class EncoderBlock(nn.Module):
         x = self.pointwise_enc(x)
         x = self.pos_drop(x)
         return x
-    
+
 
 class ScepterConvMixer(nn.Module):
     def __init__(self, patch_size=3, time_dim=25, kernel_size=3, depth=7, 
-                 encoder_type='space_time_mixture', head_dim=(53,63,52), p=0.,) -> None:
+                 encoder_type='space_time', head_dim=(53,63,52), p=0., ) -> None:
         super().__init__()
         self.patches = PatchEmbed(img_size=head_dim, 
                                       patch_size=patch_size, 
@@ -81,11 +81,9 @@ class ScepterConvMixer(nn.Module):
             ]
         )
 
-
     def forward(self, x):
         x = self.patches(x)
         for block in self.enc_blocks:
             x = block(x)
         x = F.interpolate(x, size=tuple(self.patches.img_size)).permute(0,2,3,4,1)
-
         return x
