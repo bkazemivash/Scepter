@@ -13,8 +13,8 @@ from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img, load_img
 from nibabel.nifti1 import Nifti1Image
-from scipy import stats, signal
-from scipy.ndimage import gaussian_filter
+from scipy import stats, signal # type: ignore
+from scipy.ndimage import gaussian_filter # type: ignore
 from functools import reduce
 
 
