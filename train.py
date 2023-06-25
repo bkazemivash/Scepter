@@ -43,7 +43,7 @@ def criterion(x1: torch.Tensor,
     elif loss_function == 'Correlation':
         cos = CosineSimilarity(dim=1, eps=1e-6)
         metric = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-        return metric
+        return metric.sum()
     else:
         metric = MSELoss(reduction='sum')
         return metric(x1, x2)
