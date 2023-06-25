@@ -25,11 +25,11 @@ def weights_init(m: nn.Module) -> None:
         m (nn.Module): model layers
     """
     if isinstance(m, (nn.Conv3d, nn.ConvTranspose3d)):
-        nn.init.xavier_normal_(m.weight.data)
+        nn.init.xavier_normal_(m.weight.data, gain=.75)
         if m.bias is not None:
             nn.init.constant_(m.bias.data, 0)
     elif isinstance(m, (nn.Conv2d,)):
-        nn.init.xavier_normal_(m.weight.data, gain=.8)
+        nn.init.xavier_normal_(m.weight.data, gain=.75)
         if m.bias is not None:
             nn.init.constant_(m.bias.data, 0)            
     elif isinstance(m, (nn.BatchNorm3d, nn.BatchNorm2d)):
