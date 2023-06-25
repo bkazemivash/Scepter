@@ -33,12 +33,12 @@ TRAIN:
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 600
-  batch_size: 15
+  step_lr: 200
+  batch_size: 3
   workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: MSE
+  loss: Correlation
 TEST:
   test_size: 1
   test_workers: 0

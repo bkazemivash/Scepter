@@ -7,7 +7,7 @@ EXPERIMENT:
 MODEL:
   patch_size: 3
   time_dim: 25
-  kernel_size: 3
+  kernel_size: 5
   depth: 9
   encoder_type: 'space_time_mixture'
   head_dim: [53, 63, 52]
