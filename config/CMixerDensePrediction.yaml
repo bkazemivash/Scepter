@@ -8,7 +8,7 @@ MODEL:
   patch_size: 2
   time_dim: 25
   kernel_size: 3
-  depth: 12
+  depth: 9
   encoder_type: 'space_time_mixture'
   head_dim: [53, 63, 52]
   p: 0.1
@@ -24,7 +24,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: False
-  valid_ids: [9]
+  valid_ids: [13]
   transform: True
   task: DensePrediction
 TRAIN:

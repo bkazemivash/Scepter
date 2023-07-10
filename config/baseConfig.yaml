@@ -24,7 +24,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: False
-  valid_ids: [9]
+  valid_ids: [45]
   transform: True
   task: DensePrediction
 TRAIN:
