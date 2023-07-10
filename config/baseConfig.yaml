@@ -5,9 +5,9 @@ EXPERIMENT:
   type: CMIXER
   save_model: True
 MODEL:
-  patch_size: 3
+  patch_size: 2
   time_dim: 25
-  kernel_size: 5
+  kernel_size: 3
   depth: 9
   encoder_type: 'space_time_mixture'
   head_dim: [53, 63, 52]

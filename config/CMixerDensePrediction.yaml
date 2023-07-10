@@ -5,10 +5,10 @@ EXPERIMENT:
   type: CMIXER
   save_model: True
 MODEL:
-  patch_size: 3
+  patch_size: 2
   time_dim: 25
   kernel_size: 3
-  depth: 9
+  depth: 12
   encoder_type: 'space_time_mixture'
   head_dim: [53, 63, 52]
   p: 0.1
@@ -33,12 +33,12 @@ TRAIN:
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 200
+  step_lr: 500
   batch_size: 3
   workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: Correlation
+  loss: MSE
 TEST:
   test_size: 1
   test_workers: 0
