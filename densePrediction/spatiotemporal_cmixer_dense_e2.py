@@ -26,9 +26,9 @@ class PatchEmbed(nn.Module):
         self.patch_size = patch_size
         self.n_patches = get_num_patches(img_size, patch_size)
         self.split = nn.Sequential(
-                        nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size, groups=separable_ratio),
-                        nn.GELU(),
                         nn.BatchNorm3d(embed_dim),
+                        nn.GELU(),
+                        nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size, groups=separable_ratio),
                         )
 
     def forward(self, x):
@@ -44,14 +44,17 @@ class EncoderBlock(nn.Module):
     def __init__(self, dim, kernel_size, enc_p=0.,) -> None:
         super().__init__()
         self.depthwise_enc = nn.Sequential(
-                                    nn.Conv3d(dim, dim, kernel_size, groups=dim, padding="same"),
-                                    nn.GELU(),
                                     nn.BatchNorm3d(dim),                                
+                                    nn.GELU(),
+                                    nn.Conv3d(dim, dim, kernel_size, groups=dim, padding="same"),
+                                    nn.BatchNorm3d(dim),                                
+                                    nn.GELU(),
+                                    nn.Conv3d(dim, dim, kernel_size, groups=dim, padding="same"),                                    
                                     )
         self.pointwise_enc = nn.Sequential(
                                     nn.Conv3d(dim, dim, kernel_size=1),
-                                    nn.GELU(),
                                     nn.BatchNorm3d(dim),                                                                                                                                                      
+                                    nn.GELU(),
                                     )
         self.pos_drop = nn.Dropout(enc_p)
 
