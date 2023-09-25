@@ -5,13 +5,18 @@ EXPERIMENT:
   type: CMIXER
   save_model: True
 MODEL:
-  patch_size: 2
-  time_dim: 25
-  kernel_size: 3
-  depth: 9
-  encoder_type: 'space_time_mixture'
-  head_dim: [53, 63, 52]
-  p: 0.
+  img_size: [53, 63, 52]
+  patch_size: 7
+  in_chans: 1
+  n_score_maps: 2
+  embed_dim: 768
+  depth: 1
+  n_heads: 12
+  mlp_ratio: 1
+  qkv_bias: True
+  p: 0.1
+  attn_p: 0.
+  attn_type: space_time
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
@@ -24,17 +29,17 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: False
-  valid_ids: [45]
+  valid_ids: [13]
   transform: True
   task: DensePrediction
 TRAIN:
-  epochs: 200
+  epochs: 1000
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 100
-  batch_size: 15
+  step_lr: 500
+  batch_size: 3
   workers: 4
   warmup_epochs: 0
   warmup_lr: 1e-2
