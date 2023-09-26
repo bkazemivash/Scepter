@@ -1,4 +1,4 @@
-""" Implementation of spatiotemporal base cnn model for dense prediction of
+""" Implementation of spatiotemporal cnn model for dense prediction of
     brain dynamism.
 """
 
