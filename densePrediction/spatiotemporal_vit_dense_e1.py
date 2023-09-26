@@ -142,7 +142,8 @@ class ScepterVisionTransformer(nn.Module):
         img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)
         patch_size (int, optional): Size of the patch. Defaults to 16.
         in_chans (int, optional): Number of channels. Defaults to 3.
-        n_networks (int, optional): Number of classes. Defaults to 100.
+        bottleneck_dim (int, optional): Embedding dimension for head module. Defaults to 1.
+        decoder_dim (Tuple[int, ...], optional): Shape of each volume to recconstruct. Defaults to (53,63,52).
         embed_dim (int, optional): Dimension of embedding. Defaults to 768.
         depth (int, optional): Number of Transformer blocks. Defaults to 12.
         n_heads (int, optional): Number of attention heads. Defaults to 12.
@@ -153,7 +154,7 @@ class ScepterVisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size, patch_size=7, in_chans=1, bottleneck_dim=100, decoder_dim=58869, embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, bottleneck_dim=1, decoder_dim=(53, 63, 52), embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
                  attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
