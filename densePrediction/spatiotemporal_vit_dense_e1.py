@@ -153,24 +153,22 @@ class ScepterVisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size, patch_size=7, in_chans=1, n_score_maps=100, decoder_dim=58869, embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, bottleneck_dim=100, decoder_dim=58869, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
                  attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
-        self.decoder_dim = decoder_dim
+        self.decoder_head_dim = decoder_dim
         self.time_dim = n_timepoints
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
                 patch_size=patch_size, 
                 in_chans=in_chans, 
                 embed_dim=embed_dim,)
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches, embed_dim))
-        if attn_type == 'space_time':
-            self.pos_embed = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches * self.time_dim, embed_dim))
+
+        self.spatial_pos_embed = nn.Parameter(torch.zeros(1, self.patch_embed.n_patches * self.time_dim, embed_dim))
         self.pos_drop = nn.Dropout(p)
-        self.enc_blocks = nn.ModuleList(
+        self.spatial_enc_blocks = nn.ModuleList(
             [
                 EncoderBlock(
                     dim=embed_dim, 
@@ -182,21 +180,11 @@ class ScepterVisionTransformer(nn.Module):
                 for _ in range(depth)
             ]
         )
-        if attn_type in ['joint_encoders', 'sequential_encoders', 'parallel_encoders']:
-            self.cls_token_temporal = nn.Parameter(torch.zeros(1, 1, embed_dim))
-            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, 1 + self.time_dim, embed_dim))            
-            self.temporal_encoder = EncoderBlock(
-                                        dim=embed_dim, 
-                                        n_heads=n_heads, 
-                                        mlp_ratio=mlp_ratio, 
-                                        qkv_bias=qkv_bias, 
-                                        p=p, 
-                                        attn_p=attn_p,)
 
-        if attn_type == 'parallel_encoders':
-            self.cls_token_fusion = nn.Parameter(torch.zeros(1, 1, embed_dim))
-            self.pos_embed_fusion = nn.Parameter(torch.zeros(1, 1 + self.patch_embed.n_patches + self.time_dim, embed_dim))            
-            self.fusion_encoder = EncoderBlock(
+        if attn_type in ['sequential_encoders']:
+            self.spatial_pos_embed = nn.Parameter(torch.zeros(1, self.patch_embed.n_patches, embed_dim))
+            self.temporal_pos_embed = nn.Parameter(torch.zeros(1, self.time_dim, embed_dim))                        
+            self.temporal_encoder = EncoderBlock(
                                         dim=embed_dim, 
                                         n_heads=n_heads, 
                                         mlp_ratio=mlp_ratio, 
@@ -205,97 +193,48 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.head = nn.Linear(embed_dim, n_score_maps)
+        self.head = nn.Linear(embed_dim, bottleneck_dim)
 
     def forward(self, x):
         b, c, t, i, j, z = x.shape
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
         x = self.patch_embed(x)
-        if self.attention_type == 'parallel_encoders':
-            y = x.clone()
-        n_samples, n_patch, embbeding_dim = x.shape        
+        n_samples, n_patch, embbeding_dim = x.shape   
+
         if self.attention_type == 'space_time':
             n_samples //= self.time_dim 
             n_patch *= self.time_dim
-            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))
-
-        cls_token = self.cls_token.expand(n_samples, -1, -1)
-        x = torch.cat((cls_token, x), dim=1)
-        x = x + self.pos_embed
-        x = self.pos_drop(x)        
-        for block in self.enc_blocks:
-            x = block(x)
-        
-        if self.attention_type == 'joint_encoders':
-            x = x[:, 0]
-            n_samples //= self.time_dim
-            n_patch = self.time_dim
-            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))
-            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
-            x = torch.cat((cls_token_temporal, x), dim=1)
-            x = x + self.pos_embed_temporal
-            x = self.pos_drop(x)        
-            x = self.temporal_encoder(x)
-            
-        if self.attention_type == 'sequential_encoders':
-            x = x[:,1:]
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))            
+        else:
             n_samples //= self.time_dim 
             x = x.reshape(n_samples, self.time_dim, n_patch, embbeding_dim).permute(0,2,1,3)
             n_samples *= n_patch
             x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
-            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
-            x = torch.cat((cls_token_temporal, x), dim=1)
+
             x = x + self.pos_embed_temporal
             x = self.pos_drop(x)
             x = self.temporal_encoder(x)
 
-        if self.attention_type == 'parallel_encoders':
-            x = x[:,0]
-            n_samples //= self.time_dim
-            x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
+            n_samples //= n_patch 
+            x = x.reshape(n_samples, n_patch, self.time_dim, embbeding_dim).permute(0,2,1,3)
+            n_samples *= self.time_dim
+            x = torch.reshape(x, (n_samples, n_patch, embbeding_dim))             
 
-            n_samples, n_patch, embbeding_dim = y.shape  
-            n_samples //= self.time_dim 
-            y = y.reshape(n_samples, self.time_dim, n_patch, embbeding_dim).permute(0,2,1,3)
-            n_samples *= n_patch
-            y = torch.reshape(y, (n_samples, self.time_dim, embbeding_dim))
-            cls_token_temporal = self.cls_token_temporal.expand(n_samples, -1, -1)
-            y = torch.cat((cls_token_temporal, y), dim=1)
-            y = y + self.pos_embed_temporal
-            y = self.pos_drop(y)
-            y = self.temporal_encoder(y)
-            y = y[:,0]
-            n_samples //= n_patch
-            y = torch.reshape(y, (n_samples, n_patch, embbeding_dim))
-
-            x = torch.cat((x, y), dim=1)
-            token_fusion = self.cls_token_fusion.expand(n_samples, -1, -1)
-            x = torch.cat((token_fusion, x), dim=1)
-            x = x + self.pos_embed_fusion
-            x = self.pos_drop(x)
-            x = self.fusion_encoder(x)
+        x = x + self.spatial_pos_embed
+        x = self.pos_drop(x)        
+        for block in self.spatial_enc_blocks:
+            x = block(x)
 
         x = self.norm(x)
         x = self.head(x)
 
-        if self.attention_type == 'space_time':
-            x = x[:,1:]            
+        if self.attention_type == 'space_time':          
             n_samples *= self.time_dim 
-            n_patch //= self.time_dim
-            x = x.reshape(n_samples, n_patch, -1).permute(0,2,1)
-            x = F.interpolate(x, size=self.decoder_dim, mode='nearest').permute(0,2,1)
-            n_samples //= self.time_dim
-            x = x.reshape(n_samples, self.time_dim, self.decoder_dim, -1)
-        
-        if self.attention_type == 'sequential_encoders':
-            x = x[:,1:]
-            n_samples //= n_patch
-            n_samples *= self.time_dim
-            x = x.reshape(n_samples, n_patch, -1).permute(0,2,1)
-            x = F.interpolate(x, size=self.decoder_dim, mode='nearest').permute(0,2,1)
-            n_samples //= self.time_dim
-            x = x.reshape(n_samples, self.time_dim, self.decoder_dim, -1)
-
-        # TODO: Implementation of both scenarios ['joint_encoders', 'parallel_encoders']
+            n_patch //= self.time_dim        
+            
+        x = x.reshape(n_samples, n_patch, -1).permute(0,2,1)
+        x = F.interpolate(x, size=self.decoder_head_dim, mode='nearest').permute(0,2,1)
+        n_samples //= self.time_dim
+        x = x.reshape(n_samples, self.time_dim, self.decoder_head_dim, -1)
 
         return x
