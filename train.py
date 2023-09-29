@@ -10,6 +10,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
+from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
 from tools.utils import weights_init
 from omegaconf import OmegaConf
 
@@ -96,7 +97,7 @@ def main():
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
-    base_model = ScepterConvMixer(**conf.MODEL)
+    base_model = ScepterVisionTransformer(**conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
         base_model = DataParallel(base_model, device_ids = gpu_ids)

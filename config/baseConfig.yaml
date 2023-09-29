@@ -1,14 +1,13 @@
 EXPERIMENT:
   tag: DensePrediction
-  name: dp_cnvmixer_space_time
+  name: dp_vit_space_time
   edition: 1
-  type: CMIXER
+  type: ViT2
   save_model: True
 MODEL:
   img_size: [53, 63, 52]
   patch_size: 7
   in_chans: 1
-  n_score_maps: 2
   embed_dim: 768
   depth: 1
   n_heads: 12
@@ -17,6 +16,7 @@ MODEL:
   p: 0.1
   attn_p: 0.
   attn_type: space_time
+  n_timepoints: 25
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]

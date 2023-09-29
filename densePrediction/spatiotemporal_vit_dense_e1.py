@@ -22,6 +22,7 @@ class PatchEmbed(nn.Module):
     def __init__(self, img_size: Tuple[int, ...], patch_size: int, in_chans=1, embed_dim=768,) -> None:
         super().__init__()
         self.img_size = img_size
+        self.up_head = (7, 9, 7)
         self.patch_size = patch_size
         self.n_patches = get_num_patches(img_size, patch_size)
         self.proj = nn.Conv3d(
@@ -141,8 +142,6 @@ class ScepterVisionTransformer(nn.Module):
         img_size (Tuple[int, ...]): Size of the image with channel (5D tensor)
         patch_size (int, optional): Size of the patch. Defaults to 16.
         in_chans (int, optional): Number of channels. Defaults to 3.
-        bottleneck_dim (int, optional): Embedding dimension for head module. Defaults to 1.
-        decoder_dim (Tuple[int, ...], optional): Shape of each volume to recconstruct. Defaults to (53,63,52).
         embed_dim (int, optional): Dimension of embedding. Defaults to 768.
         depth (int, optional): Number of Transformer blocks. Defaults to 12.
         n_heads (int, optional): Number of attention heads. Defaults to 12.
@@ -153,12 +152,11 @@ class ScepterVisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size, patch_size=7, in_chans=1, bottleneck_dim=1, decoder_dim=(53, 63, 52), embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, embed_dim=768, 
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
                  attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
-        self.decoder_head_dim = decoder_dim
         self.time_dim = n_timepoints
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
@@ -183,7 +181,7 @@ class ScepterVisionTransformer(nn.Module):
 
         if attn_type in ['sequential_encoders']:
             self.spatial_pos_embed = nn.Parameter(torch.zeros(1, self.patch_embed.n_patches, embed_dim))
-            self.temporal_pos_embed = nn.Parameter(torch.zeros(1, self.time_dim, embed_dim))                        
+            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, self.time_dim, embed_dim))                        
             self.temporal_encoder = EncoderBlock(
                                         dim=embed_dim, 
                                         n_heads=n_heads, 
@@ -193,7 +191,7 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.head = nn.Linear(embed_dim, bottleneck_dim)
+        self.head = nn.Linear(embed_dim, in_chans)
 
     def forward(self, x):
         b, c, t, i, j, z = x.shape
@@ -229,12 +227,11 @@ class ScepterVisionTransformer(nn.Module):
         x = self.head(x)
 
         if self.attention_type == 'space_time':          
-            n_samples *= self.time_dim 
-            n_patch //= self.time_dim        
-            
-        x = x.reshape(n_samples, n_patch, -1).permute(0,2,1)
-        x = F.interpolate(x, size=self.decoder_head_dim, mode='nearest').permute(0,2,1)
+            n_samples *= self.time_dim        
+
+        x = x.reshape(n_samples, *self.patch_embed.up_head, -1).permute(0,4,1,2,3)
+        x = F.interpolate(x, size=tuple(self.patch_embed.img_size), mode='nearest')
         n_samples //= self.time_dim
-        x = x.reshape(n_samples, self.time_dim, self.decoder_head_dim, -1)
+        x = x.reshape(n_samples, 1, self.time_dim, *self.patch_embed.img_size).permute(0,1,3,4,5,2)
 
         return x
