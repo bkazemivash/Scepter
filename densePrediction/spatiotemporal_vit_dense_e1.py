@@ -7,7 +7,7 @@ space_time and sequential_encoders for encoding both space and time dimension.
 import torch
 import torch.nn as nn
 from typing import Tuple
-from tools.utils import get_num_patches
+from tools.utils import configure_patch_embedding
 import torch.nn.functional as F
 
 class PatchEmbed(nn.Module):
@@ -16,15 +16,15 @@ class PatchEmbed(nn.Module):
     Args:
         img_size (Tuple[int, ...]): Size of the image (3D volume)
         patch_size (int): Size of the patch
+        down_ratio (float): Ratio of down sampling
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
     """        
-    def __init__(self, img_size: Tuple[int, ...], patch_size: int, in_chans=1, embed_dim=768,) -> None:
+    def __init__(self, img_size: Tuple[int, ...], patch_size: int, down_ratio=1., in_chans=1, embed_dim=768,) -> None:
         super().__init__()
         self.img_size = img_size
-        self.up_head = (7, 9, 7)
         self.patch_size = patch_size
-        self.n_patches = get_num_patches(img_size, patch_size)
+        self.up_head, self.n_patches = configure_patch_embedding(img_size, patch_size, down_ratio)
         self.proj = nn.Conv3d(
                 in_chans, 
                 embed_dim, 
@@ -143,6 +143,7 @@ class ScepterVisionTransformer(nn.Module):
         patch_size (int, optional): Size of the patch. Defaults to 16.
         in_chans (int, optional): Number of channels. Defaults to 3.
         embed_dim (int, optional): Dimension of embedding. Defaults to 768.
+        down_sample_ratio (float, optional): Ratio of down sampling for input image.
         depth (int, optional): Number of Transformer blocks. Defaults to 12.
         n_heads (int, optional): Number of attention heads. Defaults to 12.
         mlp_ratio (float, optional): Drop out ratio of MLP. Defaults to 4.
@@ -152,15 +153,17 @@ class ScepterVisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size, patch_size=7, in_chans=1, embed_dim=768, 
+    def __init__(self, img_size, patch_size=7, in_chans=1, embed_dim=768, down_sample_ratio=1.,
                  depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
                  attn_type='space_time', n_timepoints=490) -> None:
         super().__init__()
         self.attention_type = attn_type
+        self.down_sampling_ratio = down_sample_ratio
         self.time_dim = n_timepoints
         self.patch_embed = PatchEmbed(
                 img_size=img_size, 
-                patch_size=patch_size, 
+                patch_size=patch_size,
+                down_ratio=down_sample_ratio, 
                 in_chans=in_chans, 
                 embed_dim=embed_dim,)
 
@@ -194,6 +197,8 @@ class ScepterVisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, in_chans)
 
     def forward(self, x):
+        if self.down_sampling_ratio != 1.0:
+            x = F.interpolate(x.squeeze(), scale_factor=self.down_sampling_ratio, mode='nearest').unsqueeze(1)
         b, c, t, i, j, z = x.shape
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
         x = self.patch_embed(x)

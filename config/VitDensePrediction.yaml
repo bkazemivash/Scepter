@@ -6,25 +6,26 @@ EXPERIMENT:
   save_model: True
 MODEL:
   img_size: [53, 63, 52]
-  patch_size: 7
+  patch_size: 3
   in_chans: 1
-  embed_dim: 768
+  embed_dim: 96
+  down_sample_ratio: .5
   depth: 1
-  n_heads: 12
+  n_heads: 6
   mlp_ratio: 1
   qkv_bias: True
   p: 0.1
   attn_p: 0.
   attn_type: space_time
-  n_timepoints: 20
+  n_timepoints: 10
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 20
-  sampling_rate: 5
+  n_timepoint: 10
+  sampling_rate: 10
   stablize: True
   inp_mode: fMRI
   keep_shape: True
@@ -33,14 +34,14 @@ DATASET:
   transform: True
   task: DensePrediction
 TRAIN:
-  epochs: 1000
+  epochs: 150
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 500
+  step_lr: 100
   batch_size: 2
-  workers: 4
+  workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
   loss: MSE

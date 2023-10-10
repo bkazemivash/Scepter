@@ -16,6 +16,7 @@ from nibabel.nifti1 import Nifti1Image
 from scipy import stats, signal # type: ignore
 from scipy.ndimage import gaussian_filter # type: ignore
 from functools import reduce
+from math import floor
 
 
 def weights_init(m: nn.Module) -> None:
@@ -53,16 +54,35 @@ def tuple_prod(inp: Tuple[int, ...]) -> int:
     return reduce(operator.mul, inp, 1)
 
 
-def get_num_patches(inp_dim: Tuple[int, ...], patch_size: int) -> int:
-    """ Computes number of patches for a given tensor.
-       
+def configure_patch_embedding(inp_dim: Tuple[int, ...], patch_size: int, 
+                              down_sampling: float,) ->Tuple[Tuple[int, ...], int]:
+    """Computes number of patches and decoder head dimension
+
     Args:
-        inp_dim (Tuple[int, ...]): input tuple
-        patch_size (int): size of the patch
+        inp_dim (Tuple[int, ...]): Size of input tensor
+        patch_size (int): Size of the patch
+        down_sampling (float): Ratio of down sampling
 
     Returns:
-        int: Number of generated patches
-    """    
+        Tuple[Tuple[int, ...], int]: Includes dimension of decoder head and number of patches in totall.
+    """
+    if down_sampling < 1.:
+        inp_dim = tuple(floor(i*down_sampling) for i in inp_dim)
+    decoder_head = tuple(map(lambda x: x//patch_size, inp_dim))
+    patch_num = reduce(operator.mul, decoder_head, 1)
+    return (decoder_head, patch_num)
+
+
+def get_num_patches(inp_dim: Tuple[int, ...], patch_size: int) -> int:
+    """Computes totall number of patches
+
+    Args:
+        inp_dim (Tuple[int, ...]): Size of input tensor
+        patch_size (int): Size of each patch
+
+    Returns:
+        int: Totall number of patches
+    """
     return reduce(operator.mul, tuple(map(lambda x: x//patch_size, inp_dim)), 1)
 
 
@@ -258,3 +278,16 @@ def compute_class_weights(x: Any) -> torch.Tensor:
     _, class_count = np.unique(x, return_counts=True)
     weights = 1. / class_count
     return torch.tensor(weights, dtype=torch.float)
+
+
+def memory_report() -> str:
+    """Checks the memory status on the gpu node.
+
+    Returns:
+        str: Reports different elements of memory.
+    """
+    report = "torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/ 1024**3) +\
+          "\ttorch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/ 1024**3) +\
+          "\ttorch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/ 1024**3)
+
+    return report
