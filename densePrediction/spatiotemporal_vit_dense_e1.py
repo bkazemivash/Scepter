@@ -195,6 +195,7 @@ class ScepterVisionTransformer(nn.Module):
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, in_chans)
+        self.smoother = nn.Conv3d(in_chans, in_chans, kernel_size=5, padding=2)     #   nn.BatchNorm3d(1)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
@@ -236,6 +237,7 @@ class ScepterVisionTransformer(nn.Module):
 
         x = x.reshape(n_samples, *self.patch_embed.up_head, -1).permute(0,4,1,2,3)
         x = F.interpolate(x, size=tuple(self.patch_embed.img_size), mode='nearest')
+        x = self.smoother(x)
         n_samples //= self.time_dim
         x = x.reshape(n_samples, 1, self.time_dim, *self.patch_embed.img_size).permute(0,1,3,4,5,2)
 
