@@ -195,7 +195,7 @@ class ScepterVisionTransformer(nn.Module):
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, in_chans)
-        self.smoother = nn.Conv3d(in_chans, in_chans, kernel_size=5, padding=2)     #   nn.BatchNorm3d(1)
+        self.smoother = nn.Conv3d(in_chans, in_chans, kernel_size=5, padding=2)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
