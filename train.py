@@ -79,14 +79,21 @@ def main():
     conf = OmegaConf.load(args.config)
     save_flag = conf.EXPERIMENT.save_model
     experiment_tag = conf.EXPERIMENT.tag
-    checkpoints_directory = os.path.abspath(args.save_dir)
+    experiment_name = conf.EXPERIMENT.name
+    checkpoints_directory = os.path.join(args.args.save_dir, experiment_tag)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.dataset)
-    log_directory = os.path.abspath(args.log_dir)
+    log_directory = os.path.join(args.log_dir, experiment_name)
     logging.info("Loading subjects fMRI files and component maps")    
     main_dataset = ScepterViTDataset(image_list_file=dataset_file,
                                      mask_file=mask_file_path,
                                      **conf.DATASET)
+    if not os.path.exists(log_directory):
+        os.mkdir(log_directory)
+        logging.info(f'Log directory created in *logdir/{experiment_name}')
+    if not os.path.exists(checkpoints_directory):
+        os.mkdir(checkpoints_directory)
+        logging.info(f'Save directory created in *savedir/{experiment_tag}')    
     if main_dataset.class_dict:
         logging.info(f'Class name = {main_dataset.class_dict}')
     if main_dataset.imbalanced_weights is not None:
