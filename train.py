@@ -99,6 +99,7 @@ def main():
     if main_dataset.imbalanced_weights is not None:
         logging.info(f'Class weights = {main_dataset.imbalanced_weights}')
         main_dataset.imbalanced_weights = main_dataset.imbalanced_weights.to(dev, non_blocking=True)
+    os.system(f"cp -f {os.path.join(os.path.dirname(os.path.abspath(__file__)),'config', 'VitDensePrediction.yaml')} {os.path.join(os.path.dirname(os.path.abspath(__file__)),'densePrediction', 'spatiotemporal_vit_dense_e1.py')} {checkpoints_directory}")
     data_pack = {}
     data_pack['train'], data_pack['val'] = random_split(main_dataset, [.8, .2], generator=torch.Generator().manual_seed(70))
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
