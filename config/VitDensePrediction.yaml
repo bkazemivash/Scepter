@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DensePrediction
-  name: dp_ViT_space_time
+  tag: CB13
+  name: dp_ViT_CB13_1
   edition: 1
   type: ViT
   save_model: True
