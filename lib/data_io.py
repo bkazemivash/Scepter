@@ -49,6 +49,7 @@ class ScepterViTDataset(Dataset):
         data_shape (bool, optional): rearange the shape of input/output data to original shape. Defaults to True.
         valid_ids (Union[None, List[int,]], optional): Index of verified ICA components. Defaults to None.
         transform (bool, optional): If True, apply transform on input tensor. Defaults to False.
+        choose_peak_slice (bool, optional): If True, returns a slice of 3D space containing the peak voxel. Defaults to False.
         task (str, optional): Target task of dataset either 'Recognition' or 'DensePrediction'. Defaults to 'Recognition'.
     """   
     def __init__(self,
@@ -67,6 +68,7 @@ class ScepterViTDataset(Dataset):
                  has_input_channel = True,
                  valid_ids: Union[None, List[int,]] = None,
                  transform = False,
+                 choose_peak_slice = False,
                  task='Recognition'):
         self.info_dataframe = pd.read_pickle(image_list_file)
         self.dataset_name = dataset_name
@@ -81,6 +83,7 @@ class ScepterViTDataset(Dataset):
         self.mode = IMode(inp_mode)
         self.keep_shape = keep_shape
         self.verified_networks = valid_ids
+        self.peak_slice = choose_peak_slice
         self.transform = img_transform(is_4D=keep_shape, has_inp_ch=has_input_channel) if transform else None 
         self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
 
@@ -153,7 +156,12 @@ class ScepterViTDataset(Dataset):
 
     def __getitem__(self, idx):
         img = self._load_img(idx)
-        label = self._load_label_or_prior(idx)        
+        label = self._load_label_or_prior(idx)
+        if self.peak_slice:
+            peak_coord = (label==torch.max(label)).nonzero().squeeze()
+            cut_coord = slice(peak_coord[2]-1, peak_coord[2]+2)
+            img = img[:,:,cut_coord]
+            label = label[:,:,cut_coord] 
         if self.transform:
             img = self.transform(img)
         return img, label
