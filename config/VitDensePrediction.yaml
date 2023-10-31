@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: CB13
-  name: dp_ViT_CB13_1
+  tag: DM40
+  name: dp_ViT_DM40_1
   edition: 1
   type: ViT
   save_model: True
@@ -17,22 +17,22 @@ MODEL:
   p: 0.1
   attn_p: 0.
   attn_type: space_time
-  n_timepoints: 100
+  n_timepoints: 30
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 100
-  sampling_rate: 1
+  n_timepoint: 30
+  sampling_rate: 3
   stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [13]
+  valid_ids: [40]
   transform: True
-  choose_peak_slice: True
+  use_peak_slice: [30, 20, 28]
   task: DensePrediction
 TRAIN:
   epochs: 150
