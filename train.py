@@ -80,7 +80,7 @@ def main():
     save_flag = conf.EXPERIMENT.save_model
     experiment_tag = conf.EXPERIMENT.tag
     experiment_name = conf.EXPERIMENT.name
-    checkpoints_directory = os.path.join(args.args.save_dir, experiment_tag)
+    checkpoints_directory = os.path.join(args.save_dir, experiment_tag)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.dataset)
     log_directory = os.path.join(args.log_dir, experiment_name)
@@ -157,5 +157,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:1024"
+    torch.cuda.empty_cache()
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:1024"
     main()
