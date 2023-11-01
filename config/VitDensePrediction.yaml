@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DM40
-  name: dp_ViT_DM40_1
+  tag: VI5
+  name: dp_ViT_VI5_2
   edition: 1
   type: ViT
   save_model: True
@@ -30,9 +30,9 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [40]
+  valid_ids: [5]
   transform: True
-  use_peak_slice: [30, 20, 28]
+  use_peak_slice: [34, 6, 23]
   task: DensePrediction
 TRAIN:
   epochs: 150
