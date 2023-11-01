@@ -129,7 +129,7 @@ def main():
                 inp = inp.to(dev, non_blocking=True)
                 label = label.to(dev, non_blocking=True)
                 with torch.set_grad_enabled(phase == 'train'):
-                    optimizer.zero_grad()
+                    optimizer.zero_grad(set_to_none=True)
                     preds = base_model(inp)
                     loss = criterion(preds, label, conf.TRAIN.loss)
                     if phase == 'train':
