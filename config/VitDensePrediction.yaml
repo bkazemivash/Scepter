@@ -1,15 +1,15 @@
 EXPERIMENT:
-  tag: SM9
-  name: dp_ViT_SM9_2
+  tag: VI93
+  name: dp_ViT_VI93_3
   edition: 1
   type: ViT
   save_model: True
 MODEL:
-  img_size: [53, 63, 3]
+  img_size: [53, 63, 52]
   patch_size: 3
   in_chans: 1
   embed_dim: 96
-  down_sample_ratio: 1.
+  down_sample_ratio: .5
   depth: 1
   n_heads: 6
   mlp_ratio: 1
@@ -17,22 +17,22 @@ MODEL:
   p: 0.1
   attn_p: 0.
   attn_type: space_time
-  n_timepoints: 30
+  n_timepoints: 10
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 30
-  sampling_rate: 3
+  n_timepoint: 10
+  sampling_rate: 10
   stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [9]
+  valid_ids: [93]
   transform: True
-  use_peak_slice: [38, 30, 42]
+  use_peak_slice: null
   task: DensePrediction
 TRAIN:
   epochs: 150
