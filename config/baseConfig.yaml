@@ -1,46 +1,48 @@
 EXPERIMENT:
-  tag: DensePrediction
-  name: dp_vit_space_time
+  tag: AU21
+  name: dp_ViT_AU21_4
   edition: 1
-  type: ViT2
+  type: ViT
   save_model: True
 MODEL:
-  img_size: [53, 63, 52]
-  patch_size: 7
+  img_size: [53, 63, 3]
+  patch_size: 3
   in_chans: 1
-  embed_dim: 768
+  embed_dim: 96
+  down_sample_ratio: 1.
   depth: 1
-  n_heads: 12
+  n_heads: 6
   mlp_ratio: 1
   qkv_bias: True
   p: 0.1
   attn_p: 0.
   attn_type: space_time
-  n_timepoints: 25
+  n_timepoints: 30
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   clean_up: True
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 25
-  sampling_rate: 4
+  n_timepoint: 30
+  sampling_rate: 3
   stablize: True
   inp_mode: fMRI
   keep_shape: True
-  has_input_channel: False
-  valid_ids: [13]
+  has_input_channel: True
+  valid_ids: [21]
   transform: True
+  use_peak_slice: [5, 29, 26]
   task: DensePrediction
 TRAIN:
-  epochs: 1000
+  epochs: 150
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 500
-  batch_size: 3
-  workers: 4
+  step_lr: 100
+  batch_size: 2
+  workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
   loss: MSE
