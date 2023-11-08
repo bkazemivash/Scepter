@@ -56,3 +56,16 @@ def compute_confusion_matrix(x1: torch.Tensor,
 
 def compute_roc_curve(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
     return torch.rand(1)
+
+def robust_scaling(x1: torch.Tensor):
+    # Calculate the first quartile (Q1) and the third quartile (Q3)
+    Q1 = torch.quantile(x1, .25, dim=0,)
+    Q3 = torch.quantile(x1, .75, dim=0,)
+    M,_ = torch.median(x1, dim=0,)
+    # Calculate the interquartile range (IQR)
+    IQR = Q3 - Q1
+    
+    # Apply Robust Scaling
+    scaled_data = (x1 - M.squeeze(0)) / IQR.squeeze(0)
+    
+    return scaled_data
