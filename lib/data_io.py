@@ -158,7 +158,7 @@ class ScepterViTDataset(Dataset):
         img = self._load_img(idx)
         label = self._load_label_or_prior(idx)
         if self.peak_slice:
-            cut_coord = slice(self.peak_slice[2]-3, self.peak_slice[2]+3)
+            cut_coord = slice(self.peak_slice[2]-1, self.peak_slice[2]+2)
             img = img[:,:,cut_coord]
             label = label[:,:,cut_coord]
         if self.transform:
