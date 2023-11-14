@@ -67,7 +67,7 @@ def configure_patch_embedding(inp_dim: Tuple[int, ...], patch_size: int,
         Tuple[Tuple[int, ...], int]: Includes dimension of decoder head and number of patches in totall.
     """
     if down_sampling < 1.:
-        inp_dim = tuple(floor(i*down_sampling) for i in inp_dim)
+        inp_dim = tuple(floor(i*down_sampling) if floor(i*down_sampling) > 3 else 3 for i in inp_dim)
     decoder_head = tuple(map(lambda x: x//patch_size, inp_dim))
     patch_num = reduce(operator.mul, decoder_head, 1)
     return (decoder_head, patch_num)
