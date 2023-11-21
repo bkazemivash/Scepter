@@ -147,7 +147,7 @@ class Smoother(nn.Module):
     def __init__(self, fixed_ch_size, k_size=5, pd_size=2, nonlinearity=False) -> None:
         super().__init__()
         self.blur = nn.Conv3d(fixed_ch_size, fixed_ch_size, kernel_size=k_size, padding=pd_size)
-        self.activation = nn.Tanh() if nonlinearity else nn.Identity()
+        self.activation = nn.GELU() if nonlinearity else nn.Identity()
     
     def forward(self, x):
         x = self.blur(x)
