@@ -135,6 +135,26 @@ class EncoderBlock(nn.Module):
         return x
 
 
+class Smoother(nn.Module):
+    """Implementation of smoothing layer
+
+    Args:
+        fixed_ch_size (int): 
+        k_size (int, optional):  Number of input channels. Defaults to 5.
+        pd_size (int, optional): Size of padding. Defaults to 2.
+        nonlinearity (bool, optional): Apply nonlinear activation function if True. Defaults to False.
+    """
+    def __init__(self, fixed_ch_size, k_size=5, pd_size=2, nonlinearity=False) -> None:
+        super().__init__()
+        self.blur = nn.Conv3d(fixed_ch_size, fixed_ch_size, kernel_size=k_size, padding=pd_size)
+        self.activation = nn.Tanh() if nonlinearity else nn.Identity()
+    
+    def forward(self, x):
+        x = self.blur(x)
+        x = self.activation(x)
+        return x
+
+
 class ScepterVisionTransformer(nn.Module):
     """Implementation of Vision Transformer 
 
@@ -195,7 +215,7 @@ class ScepterVisionTransformer(nn.Module):
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, in_chans)
-        self.smoother = nn.Conv3d(in_chans, in_chans, kernel_size=5, padding=2)
+        self.smoother = Smoother(in_chans, nonlinearity=True)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
