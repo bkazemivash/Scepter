@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DM23
-  name: dp_ViT_DM23_4
+  tag: DM40E2
+  name: dp_ViT_DM40_10
   edition: 1
   type: ViT
   save_model: True
@@ -30,9 +30,9 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [23]
+  valid_ids: [40]
   transform: True
-  use_peak_slice: [5, 29, 26]
+  use_peak_slice: [30, 20, 28]
   task: DensePrediction
 TRAIN:
   epochs: 150
@@ -50,4 +50,4 @@ TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: MSE
+  metric: HYB
