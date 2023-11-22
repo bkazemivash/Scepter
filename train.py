@@ -37,17 +37,25 @@ def criterion(x1: torch.Tensor,
             x2 = x2.float()
             metric = BCEWithLogitsLoss(weight=weights_) 
         return metric(x1, x2)
-    elif loss_function == 'CosineSimilarity':
-        cos = CosineSimilarity(dim=1, eps=1e-6)
-        metric = 1. - cos(x1, x2)
-        return metric
     elif loss_function == 'Correlation':
         cos = CosineSimilarity(dim=1, eps=1e-6)
         metric = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
         return metric.sum()
-    else:
+    elif loss_function == 'MSE':
         metric = MSELoss(reduction='sum')
         return metric(x1, x2)
+    else:
+        landa_ = float(kwargs['landa']) if 'landa' in kwargs else .8
+        mse_ = MSELoss(reduction='sum')
+        cos_ = CosineSimilarity(dim=2)
+        cosine_similarities = 0
+        for i in range(x1.size(0)):
+            current_sample = x1[i]
+            current_sample = current_sample.view(-1, current_sample.size(-1)).T
+            cosine_sim = cos_(current_sample.unsqueeze(1), current_sample.unsqueeze(0))
+            torch.diagonal(cosine_sim, 0).zero_()
+            cosine_similarities += cosine_sim.sum() * .5
+        return mse_(x1, x2) + (cosine_similarities * landa_)
 
 
 def main():
