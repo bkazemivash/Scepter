@@ -45,7 +45,7 @@ def criterion(x1: torch.Tensor,
         metric = MSELoss(reduction='sum')
         return metric(x1, x2)
     else:
-        landa_ = float(kwargs['landa']) if 'landa' in kwargs else .8
+        landa_ = float(kwargs['landa']) if 'landa' in kwargs else 10.
         mse_ = MSELoss(reduction='sum')
         cos_ = CosineSimilarity(dim=2)
         cosine_similarities = 0
