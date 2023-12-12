@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: AU21
-  name: dp_ViT_AU21_4
+  tag: DM40E3
+  name: dp_ViT_DM40_11
   edition: 1
   type: ViT
   save_model: True
@@ -19,20 +19,20 @@ MODEL:
   attn_type: space_time
   n_timepoints: 30
 DATASET:
-  dataset_name: BSNIP
+  dataset_name: dBSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: True
+  clean_up: False
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 30
+  n_timepoint: 0
   sampling_rate: 3
   stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [21]
+  valid_ids: [18]
   transform: True
-  use_peak_slice: [5, 29, 26]
+  use_peak_slice: null
   task: DensePrediction
 TRAIN:
   epochs: 150
@@ -45,9 +45,9 @@ TRAIN:
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: MSE
+  loss: HYB
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: MSE
+  metric: HYB
