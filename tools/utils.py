@@ -9,6 +9,9 @@ import numpy as np
 import operator
 import torch
 import torch.nn as nn
+import mat73
+from multipledispatch import dispatch
+from omegaconf import ListConfig
 from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img, load_img
@@ -145,11 +148,11 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     data_ = apply_mask(original_img, mask_img)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
+    data_ = (data_ - data_.mean()) / data_.std()
     if denoise:
-        data_ = (data_ - data_.mean()) / data_.std()
         cutoff = [data_.mean() - (3. * data_.std()), data_.mean() + (3. * data_.std())]
         data_[(data_>cutoff[1]) | (data_<cutoff[0])] = 0.
-    data_ = 5.999 * (data_ - data_.min()) / (data_.max() - data_.min()) + .001
+        data_[data_ != 0.] = 5.999 * (data_[data_ != 0.] - data_[data_ != 0.].min()) / (data_[data_ != 0.].max() - data_[data_ != 0.].min()) + .001
     if rearange:
         data_ = unmask(data_, mask_img)
     return data_  # type: ignore
@@ -170,6 +173,50 @@ def path_correction(inp_path: str) -> tuple[str, str]:
     return spatial_mat_data, temporal_mat_data
 
 
+@dispatch(str, str, ListConfig, bool, int, int, bool)
+def ica_mixture(inp_mat_file: str,
+                   mask_img: str,
+                   valid_networks: List[int,],
+                   stablize = False,
+                   time_slice = 0,
+                   step_size = 1,
+                   rearange = False) -> Union[Nifti1Image, torch.Tensor]:
+    """Load and preprocess spatially constrined windowed ICA.
+
+    Args:
+        inp_mat_file (str): Path to mat file including detail information.
+        mask_img (str): Path to a 3D Niimg-like mask object.
+        valid_networks (List[int,]): List of all verified ICA components.
+        stablize (bool, optional): Get absolute value of data. Dafaults to False.
+        time_slice (int, optional): Slice of timepoints. Defaults to 0.
+        step_size (int, optional): Sampling rate of timepoints. Defaults to 1.
+        rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to False.
+
+    Returns:
+        Union[Nifti1Image, torch.Tensor]: a 4D Niimg-like object or processed ICA components.
+    """
+    valid_idx = np.array(valid_networks) - 1
+    steper = slice(0,None)
+    if time_slice>0:
+        totall_timepoints = time_slice * step_size
+        steper = slice(0, totall_timepoints, step_size)
+    mask_data = load_img(mask_img).get_fdata()
+    mask_shape_ = mask_data.shape
+    data_ = mat73.loadmat(inp_mat_file)['SMs_mooicar']
+    data_ = torch.from_numpy(data_)[:, valid_idx, steper].permute(0,2,1)
+    data_ = data_ - data_.mean(dim=(0,1)) / data_.std(dim=(0,1))
+    if stablize:
+        data_ = 2 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) -1
+    if rearange:
+        mask_data = mask_data.flatten(order='F').astype('bool')
+        mask_data = torch.from_numpy(mask_data)
+        reshaped_data = torch.zeros(mask_data.shape + (data_.shape[1],), dtype=torch.double)
+        reshaped_data[mask_data == True] = data_.squeeze()
+        data_ = reshaped_data.reshape(*reversed(mask_shape_), data_.shape[1]).permute(2,1,0,3)
+    return data_   # type: ignore
+
+
+@dispatch(str, str, ListConfig, bool, int, int, bool, bool)
 def ica_mixture(inp_mat_file: str,
                    mask_img: str,
                    valid_networks: List[int,],
