@@ -16,8 +16,8 @@ from typing import Tuple, Union, Dict, Any, List
 from nilearn.masking import unmask, apply_mask
 from nilearn.image import index_img, load_img
 from nibabel.nifti1 import Nifti1Image
-from scipy import stats, signal # type: ignore
-from scipy.ndimage import gaussian_filter # type: ignore
+from scipy import signal
+from scipy.ndimage import gaussian_filter 
 from functools import reduce
 from math import floor
 
@@ -180,7 +180,7 @@ def ica_mixture(inp_mat_file: str,
                    stablize = False,
                    time_slice = 0,
                    step_size = 1,
-                   rearange = False) -> Union[Nifti1Image, torch.Tensor]:
+                   rearange = False) ->  torch.Tensor:
     """Load and preprocess spatially constrined windowed ICA.
 
     Args:
@@ -193,7 +193,7 @@ def ica_mixture(inp_mat_file: str,
         rearrange (bool, optional): Rearranging the output matrix to original 4G. Defaults to False.
 
     Returns:
-        Union[Nifti1Image, torch.Tensor]: a 4D Niimg-like object or processed ICA components.
+        torch.Tensor: torch Tensor including 4D maps.
     """
     valid_idx = np.array(valid_networks) - 1
     steper = slice(0,None)
@@ -213,7 +213,7 @@ def ica_mixture(inp_mat_file: str,
         reshaped_data = torch.zeros(mask_data.shape + (data_.shape[1],), dtype=torch.double)
         reshaped_data[mask_data == True] = data_.squeeze()
         data_ = reshaped_data.reshape(*reversed(mask_shape_), data_.shape[1]).permute(2,1,0,3)
-    return data_   # type: ignore
+    return data_
 
 
 @dispatch(str, str, ListConfig, bool, int, int, bool, bool)
