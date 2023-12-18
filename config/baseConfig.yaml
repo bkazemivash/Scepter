@@ -24,13 +24,13 @@ DATASET:
   clean_up: False
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 0
-  sampling_rate: 3
+  n_timepoint: 10
+  sampling_rate: 10
   stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [18]
+  valid_ids: [20]
   transform: True
   use_peak_slice: null
   task: DensePrediction

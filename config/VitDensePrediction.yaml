@@ -5,7 +5,7 @@ EXPERIMENT:
   type: ViT
   save_model: True
 MODEL:
-  img_size: [53, 63, 3]
+  img_size: [53, 63, 52]
   patch_size: 3
   in_chans: 1
   embed_dim: 96
@@ -21,16 +21,16 @@ MODEL:
 DATASET:
   dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
-  clean_up: True
+  clean_up: False
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 30
-  sampling_rate: 3
+  n_timepoint: 10
+  sampling_rate: 10
   stablize: True
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [40]
+  valid_ids: [20]
   transform: True
   use_peak_slice: null
   task: DensePrediction
