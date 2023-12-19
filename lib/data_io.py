@@ -93,9 +93,14 @@ class ScepterViTDataset(Dataset):
         Args:
             sample_idx (int): Index of a subject in dataset.
 
+        Raises:
+            ValueError: If input mode flag is set to ICA for any other dataset except BSNIP.
+
         Returns:
             torch.Tensor: 5D tensor of image data, (#channel_size, #timepoints, 3D space).
         """
+        if (self.dataset_name !='BSNIP' and self.mode == IMode.ica):
+            raise ValueError("Please change ICA input mode to fMRI since it is only valid for BSNIP.")
         if self.mode == IMode.fmri:
             img_dir = self.info_dataframe.iloc[sample_idx].FilePath
             img = fmri_preprocess(inp_img=img_dir,
@@ -136,15 +141,25 @@ class ScepterViTDataset(Dataset):
             return torch.tensor(self.class_dict[status], dtype=torch.long)
         else:
             self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
-            img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
-            img = ica_mixture(inp_mat_file=img_dir,
-                                 mask_img=self.mask_img,
-                                 valid_networks=self.verified_networks,
-                                 stablize=self.stablize,
-                                 time_slice=self.time_bound,
-                                 step_size=self.sampling_rate,
-                                 mix_it=False,
-                                 rearange=self.keep_shape)
+            if self.dataset_name == 'BSNIP':
+                img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
+                img = ica_mixture(img_dir,
+                                    self.mask_img,
+                                    self.verified_networks,
+                                    self.stablize,
+                                    self.time_bound,
+                                    self.sampling_rate,
+                                    False,
+                                    self.keep_shape)
+            else:
+                img_dir = self.info_dataframe.iloc[sample_idx].Prior
+                img = ica_mixture(img_dir,
+                                    self.mask_img,
+                                    self.verified_networks,
+                                    self.stablize,
+                                    self.time_bound,
+                                    self.sampling_rate,
+                                    self.keep_shape)
         if isinstance(img, Nifti1Image):
             img = img.get_fdata()
         if isinstance(img, np.ndarray):
