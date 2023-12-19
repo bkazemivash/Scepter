@@ -19,7 +19,7 @@ MODEL:
   attn_type: space_time
   n_timepoints: 30
 DATASET:
-  dataset_name: BSNIP
+  dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
   clean_up: False
   smooth: True

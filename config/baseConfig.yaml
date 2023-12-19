@@ -5,7 +5,7 @@ EXPERIMENT:
   type: ViT
   save_model: True
 MODEL:
-  img_size: [53, 63, 3]
+  img_size: [53, 63, 52]
   patch_size: 3
   in_chans: 1
   embed_dim: 96
@@ -19,7 +19,7 @@ MODEL:
   attn_type: space_time
   n_timepoints: 30
 DATASET:
-  dataset_name: dBSNIP
+  dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
   clean_up: False
   smooth: True
