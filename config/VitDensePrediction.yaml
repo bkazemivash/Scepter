@@ -6,7 +6,7 @@ EXPERIMENT:
   save_model: True
 MODEL:
   img_size: [53, 63, 52]
-  patch_size: 3
+  patch_size: 5
   in_chans: 1
   embed_dim: 96
   down_sample_ratio: 1.
@@ -17,7 +17,7 @@ MODEL:
   p: 0.1
   attn_p: 0.
   attn_type: space_time
-  n_timepoints: 30
+  n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
@@ -26,11 +26,11 @@ DATASET:
   imbalanced_flag: False
   n_timepoint: 10
   sampling_rate: 10
-  stablize: True
+  stablize: False
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [20]
+  valid_ids: [3]
   transform: True
   use_peak_slice: null
   task: DensePrediction
