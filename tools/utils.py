@@ -73,7 +73,7 @@ def configure_patch_embedding(inp_dim: Tuple[int, ...], patch_size: int,
         inp_dim = tuple(floor(i*down_sampling) if floor(i*down_sampling) > 3 else 3 for i in inp_dim)
     decoder_head = tuple(map(lambda x: x//patch_size, inp_dim))
     patch_num = reduce(operator.mul, decoder_head, 1)
-    return (decoder_head, patch_num)
+    return (decoder_head, patch_num, inp_dim)
 
 
 def get_num_patches(inp_dim: Tuple[int, ...], patch_size: int) -> int:
@@ -181,7 +181,8 @@ def ica_mixture(inp_mat_file: str,
                    time_slice = 0,
                    step_size = 1,
                    rearange = False) ->  torch.Tensor:
-    """Load and preprocess spatially constrined windowed ICA.
+    """Load and preprocess spatially constrined windowed ICA, stored in mat files.
+        Note: We don't z-score here as data is already normal.
 
     Args:
         inp_mat_file (str): Path to mat file including detail information.
@@ -204,7 +205,6 @@ def ica_mixture(inp_mat_file: str,
     mask_shape_ = mask_data.shape
     data_ = mat73.loadmat(inp_mat_file)['SMs_mooicar']
     data_ = torch.from_numpy(data_)[:, valid_idx, steper].permute(0,2,1)
-    data_ = data_ - data_.mean(dim=(0,1)) / data_.std(dim=(0,1))
     if stablize:
         data_ = 2 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) -1
     if rearange:
