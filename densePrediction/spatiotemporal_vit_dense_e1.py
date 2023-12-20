@@ -24,7 +24,7 @@ class PatchEmbed(nn.Module):
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
-        self.up_head, self.n_patches = configure_patch_embedding(img_size, patch_size, down_ratio)
+        self.up_head, self.n_patches, self.sample_shape = configure_patch_embedding(img_size, patch_size, down_ratio)
         self.proj = nn.Conv3d(
                 in_chans, 
                 embed_dim, 
@@ -147,7 +147,7 @@ class Smoother(nn.Module):
     def __init__(self, fixed_ch_size, k_size=5, pd_size=2, nonlinearity=False) -> None:
         super().__init__()
         self.blur = nn.Conv3d(fixed_ch_size, fixed_ch_size, kernel_size=k_size, padding=pd_size)
-        self.activation = nn.GELU() if nonlinearity else nn.Identity()
+        self.activation = nn.RReLU(lower=-1., upper=1.) if nonlinearity else nn.Identity()
     
     def forward(self, x):
         x = self.blur(x)
@@ -219,7 +219,9 @@ class ScepterVisionTransformer(nn.Module):
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
-            x = F.interpolate(x.squeeze(), scale_factor=self.down_sampling_ratio, mode='nearest').unsqueeze(1)
+            x = x.squeeze()
+            x = F.interpolate(x, size=self.patch_embed.sample_shape, mode='nearest')
+            x = x.unsqueeze(1)
         b, c, t, i, j, z = x.shape
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z)            
         x = self.patch_embed(x)
