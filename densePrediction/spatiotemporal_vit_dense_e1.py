@@ -6,9 +6,9 @@ space_time and sequential_encoders scenarios for encoding both space and time di
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from typing import Tuple
 from tools.utils import configure_patch_embedding
-import torch.nn.functional as F
 
 class PatchEmbed(nn.Module):
     """Split volume into patches.
