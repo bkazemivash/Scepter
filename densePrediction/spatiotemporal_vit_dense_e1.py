@@ -1,6 +1,6 @@
 """
 Implementation of spatiotemporal Vision Transfor (ViT) for dense prediction with 
-space_time and sequential_encoders for encoding both space and time dimension.
+space_time and sequential_encoders scenarios for encoding both space and time dimension.
 """
 
 
