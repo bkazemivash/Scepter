@@ -2,7 +2,7 @@ EXPERIMENT:
   tag: DM40E3
   name: dp_ViT_DM40_11
   edition: 1
-  type: ViT
+  architecture: ViT
   save_model: True
 MODEL:
   img_size: [53, 63, 52]

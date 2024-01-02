@@ -1,8 +1,8 @@
 EXPERIMENT:
-  tag: DensePrediction
-  name: dp_cnvmixer_space_time
+  tag: DM40E3
+  name: dp_CMX_DM40_1
   edition: 1
-  type: CMIXER
+  architecture: CMIXER
   save_model: True
 MODEL:
   patch_size: 2
