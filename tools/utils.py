@@ -337,3 +337,20 @@ def memory_report() -> str:
           "\ttorch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/ 1024**3)
 
     return report
+
+
+def fetch_list_of_backup_files(model_arch: str) -> tuple:
+    """Defines a list of files to backup based on model architecture.
+
+    Args:
+        model_arch (str): Type of model architecture like ViT or CMIXER
+
+    Returns:
+        tuple: Includes list of files to backup.
+    """
+    file_names_ = ('VitDensePrediction.yaml', 'spatiotemporal_vit_dense_e1.py')
+    
+    if model_arch == 'CMIXER':
+        file_names_ = ('CMixerDensePrediction.yaml', 'spatiotemporal_cmixer_dense_e1.py')
+    
+    return file_names_

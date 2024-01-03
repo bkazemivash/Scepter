@@ -11,7 +11,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from lib.data_io import ScepterViTDataset
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
-from tools.utils import weights_init
+from tools.utils import weights_init, fetch_list_of_backup_files
 from omegaconf import OmegaConf
 
 def criterion(x1: torch.Tensor, 
@@ -88,6 +88,7 @@ def main():
     save_flag = conf.EXPERIMENT.save_model
     experiment_tag = conf.EXPERIMENT.tag
     experiment_name = conf.EXPERIMENT.name
+    model_architecture = conf.EXPERIMENT.architecture
     checkpoints_directory = os.path.join(args.save_dir, experiment_tag)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.dataset)
@@ -108,13 +109,17 @@ def main():
         logging.info(f'Class weights = {main_dataset.imbalanced_weights}')
         main_dataset.imbalanced_weights = main_dataset.imbalanced_weights.to(dev, non_blocking=True)
     if save_flag:
-        os.system(f"cp -f {os.path.join(os.path.dirname(os.path.abspath(__file__)),'config', 'VitDensePrediction.yaml')} {os.path.join(os.path.dirname(os.path.abspath(__file__)),'densePrediction', 'spatiotemporal_vit_dense_e1.py')} {checkpoints_directory}")
+        backup_files = fetch_list_of_backup_files(model_architecture)
+        os.system(f"cp -f {os.path.join(os.path.dirname(os.path.abspath(__file__)),'config', backup_files[0])} {os.path.join(os.path.dirname(os.path.abspath(__file__)),'densePrediction', backup_files[1])} {checkpoints_directory}")
     data_pack = {}
     data_pack['train'], data_pack['val'] = random_split(main_dataset, [.8, .2], generator=torch.Generator().manual_seed(70))
     dataloaders = {x: DataLoader(data_pack[x], batch_size=int(conf.TRAIN.batch_size), shuffle=True, num_workers=int(conf.TRAIN.workers), pin_memory=True) for x in ['train', 'val']}       
     gpu_ids = list(range(torch.cuda.device_count()))
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
-    base_model = ScepterVisionTransformer(**conf.MODEL)
+    if model_architecture == 'ViT':
+        base_model = ScepterVisionTransformer(**conf.MODEL)
+    else:
+        base_model = ScepterConvMixer(**conf.MODEL)
     base_model.apply(weights_init)
     if torch.cuda.device_count() > 1:
         base_model = DataParallel(base_model, device_ids = gpu_ids)
