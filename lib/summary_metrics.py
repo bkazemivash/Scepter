@@ -5,7 +5,6 @@ dense prediciton or recognition.
 
 import torch
 from torch.nn import CosineSimilarity
-from multipledispatch import dispatch
 
 
 
