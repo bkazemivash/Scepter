@@ -4,32 +4,111 @@ dense prediciton or recognition.
 """
 
 import torch
+import torch.nn.functional as F
 from torch.nn import CosineSimilarity
+from math import exp
 
 
 
-def iou_3D(outputs: torch.Tensor, labels: torch.Tensor, thr = (.5, .5), smooth_ratio = 1e-6) -> float:
+def iou_3D(outputs: torch.Tensor, prior: torch.Tensor, thr = (.5, .5), smooth_ratio = 1e-6) -> float:
     """Computes Intersection Over Union (IOU) metric based on number of 
         voxels in intersection and union of ROI. Masking threshold is used
         to seperated forground from background.
 
     Args:
         outputs (torch.Tensor): 3D tensor including predicted score map (x,y,z).
-        labels (torch.Tensor): 3D tensor including prior map  (x,y,z).
+        prior (torch.Tensor): 3D tensor including prior map  (x,y,z).
         thr (tuple, optional): Masking threshold for output and label. Defaults to (.5, .5).
         smooth_ratio (_type_, optional): Epsilon value to prevent devided by zero case. Defaults to 1e-6.
 
     Returns:
         float: Voxel-wise IOU of 2 maps.
     """
-    assert (outputs.ndim == 3) and (labels.ndim ==3), '3D tensors are expected while inputs have different dimension.'
+    assert (outputs.ndim == 3) and (prior.ndim ==3), '3D tensors are expected while inputs have different dimensions.'
     outputs = (outputs>thr[0]).int()
-    labels = (labels>thr[1]).int()
-    intersection = (outputs & labels).float().sum()  
-    union = (outputs | labels).float().sum()            
+    prior = (prior>thr[1]).int()
+    intersection = (outputs & prior).float().sum()  
+    union = (outputs | prior).float().sum()            
     iou = (intersection + smooth_ratio) / (union + smooth_ratio)      
     
     return iou  
+
+
+def mare_3D(output: torch.Tensor, prior: torch.Tensor, thr=0.) -> float:
+    """Computes mean absolute relative error for the given tensors (score maps)
+
+    Args:
+        output (torch.Tensor): 3D tensor including predicted score map (x,y,z)
+        prior (torch.Tensor): 3D tensor including prior map (x,y,z)
+        thr (float, optional): Masking threshold for output and prior. Defaults to 0.
+
+    Returns:
+        float: averaged absolute relative error over given maps.
+    """
+    assert (output.ndim != 3) and (prior.ndim != 3), '3D tensors are expected while inputs have different dimensions.'
+    mask = torch.gt(prior, thr)
+    error_ = torch.abs(output[mask] - prior[mask]) / torch.abs(prior[mask])    
+    return error_.mean()
+
+
+def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5, channel=1) -> float:
+    """Computes structural similarity index measure (SSIM) for the given images.
+
+    Args:
+        img1 (torch.Tensor): 3D tensor including predicted score map (x,y,z)
+        img2 (torch.Tensor): 3D tensor including prior map (x,y,z)
+        window_size (int): Size of window for convolution layers.
+        sigma (float, optional): Sigma coefficient od normal distribution. Defaults to 1.5.
+        channel (int, optional): Input channel size of images. Defaults to 1.
+
+    Returns:
+        float: SSIM metric for the input images.
+    """
+    gauss = torch.Tensor(
+        [
+            exp(-((x - window_size // 2) ** 2) / float(2 * sigma**2)) for x in range(window_size)
+        ]
+    )
+    gauss = gauss / gauss.sum()
+
+    window_1D = gauss.unsqueeze(1)
+    window_2D = window_1D.mm(window_1D.t())
+    window_3D = (
+        window_1D.mm(window_2D.reshape(1, -1))
+        .reshape(window_size, window_size, window_size)
+        .float()
+        .unsqueeze(0)
+        .unsqueeze(0)
+    )
+    window_m = window_3D.expand(channel, 1, window_size, window_size, window_size).contiguous().double()
+    
+    n_window_size = int(window_size // 2)
+    mu1 = F.conv3d(img1, window_m, padding=n_window_size, groups=channel)
+    mu2 = F.conv3d(img2, window_m, padding=n_window_size, groups=channel)
+
+    mu1_sq = mu1.pow(2)
+    mu2_sq = mu2.pow(2)
+
+    mu1_mu2 = mu1 * mu2
+
+    sigma1_sq = (
+        F.conv3d(img1 * img1, window_m, padding=n_window_size, groups=channel) - mu1_sq
+    )
+    sigma2_sq = (
+        F.conv3d(img2 * img2, window_m, padding=n_window_size, groups=channel) - mu2_sq
+    )
+    sigma12 = (
+        F.conv3d(img1 * img2, window_m, padding=n_window_size, groups=channel) - mu1_mu2
+    )
+
+    C1 = 0.01**2
+    C2 = 0.03**2
+
+    ssim_ = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) / (
+        (mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2)
+    )
+
+    return ssim_.mean()
 
 
 def robust_scaling(x1: torch.Tensor):
