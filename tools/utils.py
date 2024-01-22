@@ -181,11 +181,11 @@ def ica_mixture(inp_mat_file: str,
                    time_slice = 0,
                    step_size = 1,
                    rearange = False) ->  torch.Tensor:
-    """Load and preprocess spatially constrined windowed ICA, stored in mat files.
+    """Load and preprocess spatially constrined windowed ICA, stored in pt files.
         Note: We don't z-score here as data is already normal.
 
     Args:
-        inp_mat_file (str): Path to mat file including detail information.
+        inp_mat_file (str): Path to pt file including detail information.
         mask_img (str): Path to a 3D Niimg-like mask object.
         valid_networks (List[int,]): List of all verified ICA components.
         stablize (bool, optional): Get absolute value of data. Dafaults to False.
@@ -203,8 +203,7 @@ def ica_mixture(inp_mat_file: str,
         steper = slice(0, totall_timepoints, step_size)
     mask_data = load_img(mask_img).get_fdata()
     mask_shape_ = mask_data.shape
-    data_ = mat73.loadmat(inp_mat_file)['SMs_mooicar']
-    data_ = torch.from_numpy(data_)[:, valid_idx, steper].permute(0,2,1)
+    data_ = torch.load(inp_mat_file)[:, valid_idx, steper].permute(0,2,1)
     if stablize:
         data_ = 2 * (data_ - data_.amin(dim=(0,1)))/(data_.amax(dim=(0,1)) - data_.amin(dim=(0,1))) -1
     if rearange:
