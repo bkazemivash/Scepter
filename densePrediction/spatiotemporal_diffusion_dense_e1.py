@@ -1,6 +1,8 @@
-""" Implementation of spatiotemporal cnn model for dense prediction of
-    brain dynamism.
 """
+Implementation of spatiotemporal diffusion model for dense prediction of 
+dynamic brain networks.
+"""
+
 
 import torch
 from torch import nn, Tensor
