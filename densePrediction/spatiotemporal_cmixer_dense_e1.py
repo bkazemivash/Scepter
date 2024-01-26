@@ -1,5 +1,5 @@
 """ Implementation of spatiotemporal ConvMixer model for dense prediction of
-    brain dynamism.
+    brain dynmic maps.
 """
 
 import torch
