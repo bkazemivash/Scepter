@@ -178,4 +178,5 @@ class ScepterViTDataset(Dataset):
             label = label[:,:,cut_coord]
         if self.transform:
             img = self.transform(img)
+            label = label.unsqueeze(0)
         return img, label
