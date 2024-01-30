@@ -44,18 +44,14 @@ def criterion(x1: torch.Tensor,
     elif loss_function == 'MSE':
         metric = MSELoss(reduction='sum')
         return metric(x1, x2)
+    elif loss_function == 'COS':
+        bs = x1.shape[0]
+        metric = CosineSimilarity(dim=1, eps=1e-6)
+        return (1. - metric(x1.view(bs, -1), x2.view(bs, -1))).sum()
     else:
-        landa_ = float(kwargs['landa']) if 'landa' in kwargs else 10.
         mse_ = MSELoss(reduction='sum')
-        cos_ = CosineSimilarity(dim=2)
-        cosine_similarities = 0
-        for i in range(x1.size(0)):
-            current_sample = x1[i]
-            current_sample = current_sample.view(-1, current_sample.size(-1)).T
-            cosine_sim = cos_(current_sample.unsqueeze(1), current_sample.unsqueeze(0))
-            torch.diagonal(cosine_sim, 0).zero_()
-            cosine_similarities += cosine_sim.sum() * .5
-        return mse_(x1, x2) + (cosine_similarities * landa_)
+        cos_ = CosineSimilarity(dim=-1, eps=1e-6)
+        return mse_(x1, x2) + (1. - cos_(x1, x2)).sum()
 
 
 def main():
