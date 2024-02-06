@@ -87,7 +87,7 @@ class MLP(nn.Module):
     def __init__(self, in_feature, hidden_feature, out_feature, p=0.) -> None:
         super().__init__()
         self.fc1 = nn.Linear(in_feature, hidden_feature)
-        self.act = nn.GELU()
+        self.act = nn.Tanhshrink()
         self.fc2 = nn.Linear(hidden_feature, out_feature)
         self.drop = nn.Dropout(p)
 
@@ -135,23 +135,17 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class Smoother(nn.Module):
-    """Implementation of smoothing layer
-
-    Args:
-        fixed_ch_size (int): 
-        k_size (int, optional):  Number of input channels. Defaults to 5.
-        pd_size (int, optional): Size of padding. Defaults to 2.
-        nonlinearity (bool, optional): Apply nonlinear activation function if True. Defaults to False.
-    """
-    def __init__(self, fixed_ch_size, k_size=5, pd_size=2, nonlinearity=False) -> None:
+class SmoothingHead(nn.Module):
+    def __init__(self, embed_dim, head_dim, nonlinearity=False) -> None:
         super().__init__()
-        self.blur = nn.Conv3d(fixed_ch_size, fixed_ch_size, kernel_size=k_size, padding=pd_size)
-        self.activation = nn.RReLU(lower=-1., upper=1.) if nonlinearity else nn.Identity()
+        self.head_dim = head_dim
+        self.act = nn.Tanhshrink() if nonlinearity else nn.Identity()
+        self.blur = nn.Conv3d(embed_dim, 1, kernel_size=5, padding=2)
     
     def forward(self, x):
+        x = F.interpolate(x, size=tuple(self.head_dim), mode='nearest')
         x = self.blur(x)
-        x = self.activation(x)
+        x = self.act(x)
         return x
 
 
@@ -214,8 +208,8 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.head = nn.Linear(embed_dim, in_chans)
-        self.smoother = Smoother(in_chans, nonlinearity=True)
+        self.head = SmoothingHead(embed_dim, img_size, True)
+        self.variation_token = nn.Parameter(torch.rand(1, self.time_dim, self.patch_embed.n_patches, embed_dim))   
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
@@ -251,15 +245,17 @@ class ScepterVisionTransformer(nn.Module):
         for block in self.spatial_enc_blocks:
             x = block(x)
 
+        if self.attention_type == 'space_time':
+            n_patch //= self.time_dim
+        else:
+            n_samples //= self.time_dim
+
         x = self.norm(x)
+        x = x.reshape(n_samples, self.time_dim, n_patch, -1)
+        x = x * self.variation_token.expand(n_samples, -1, -1, -1)     
+        n_samples *= self.time_dim
+        x = x.reshape(n_samples, *self.patch_embed.up_head, -1).permute(0,4,1,2,3)        
         x = self.head(x)
-
-        if self.attention_type == 'space_time':          
-            n_samples *= self.time_dim        
-
-        x = x.reshape(n_samples, *self.patch_embed.up_head, -1).permute(0,4,1,2,3)
-        x = F.interpolate(x, size=tuple(self.patch_embed.img_size), mode='nearest')
-        x = self.smoother(x)
         n_samples //= self.time_dim
         x = x.reshape(n_samples, 1, self.time_dim, *self.patch_embed.img_size).permute(0,1,3,4,5,2)
 
