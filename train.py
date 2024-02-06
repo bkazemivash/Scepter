@@ -47,9 +47,9 @@ def criterion(x1: torch.Tensor,
     elif loss_function == 'COS':
         bs = x1.shape[0]
         metric = CosineSimilarity(dim=1, eps=1e-6)
-        return (1. - metric(x1.view(bs, -1), x2.view(bs, -1))).sum()
+        return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).sum()
     else:
-        mse_ = MSELoss(reduction='sum')
+        mse_ = MSELoss(reduction='mean')
         cos_ = CosineSimilarity(dim=-1, eps=1e-6)
         return mse_(x1, x2) + (1. - cos_(x1, x2)).sum()
 
