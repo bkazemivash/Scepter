@@ -18,7 +18,8 @@ def criterion(x1: torch.Tensor,
               x2: torch.Tensor, 
               loss_function: str = 'MSE', 
               **kwargs) -> torch.Tensor:
-    """Computes loss value based on the defined task.
+    """Computes loss value based on the defined task. We have CrossEntrop loss for Recognition, 
+        while MSE, COS, and HYB are loss functions for Dense Prediction.
 
     Args:
         x1 (torch.Tensor): Output of the model.
