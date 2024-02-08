@@ -1,5 +1,5 @@
 """
-Implementation of spatiotemporal Vision Transfor (ViT) for dense prediction with 
+Implementation of spatiotemporal Vision Transfor for dense prediction task with 
 space_time and sequential_encoders scenarios for encoding both space and time dimension.
 """
 
@@ -21,7 +21,8 @@ class PatchEmbed(nn.Module):
         in_chans (int, optional): Number of channels. Defaults to 1.
         embed_dim (int, optional): Size of embedding. Defaults to 768.
     """        
-    def __init__(self, img_size: Tuple[int, ...], patch_size: int, down_ratio=1., in_chans=1, embed_dim=768,) -> None:
+    def __init__(self, img_size: Tuple[int, ...], patch_size: int, down_ratio: float =1., 
+                 in_chans: int = 1, embed_dim: int =768,) -> None:
         super().__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -48,7 +49,8 @@ class Attention(nn.Module):
         attn_p (float, optional): Drop out ratio for attention module. Defaults to 0.
         proj_p (float, optional): Drop out ratio for output. Defaults to 0.
     """            
-    def __init__(self, dim, n_heads=12, qkv_bias=True, attn_p=0., proj_p=0.) -> None:
+    def __init__(self, dim: int, n_heads: int = 12, qkv_bias: bool = True, attn_p: float = 0., 
+                 proj_p: float = 0.) -> None:
         super().__init__()
         self.n_heads = n_heads
         self.dim = dim
@@ -85,7 +87,7 @@ class MLP(nn.Module):
         out_feature (int): Number of out_feature
         p (float, optional): Drop out ratio. Defaults to 0.
     """        
-    def __init__(self, in_feature, hidden_feature, out_feature, p=0.) -> None:
+    def __init__(self, in_feature: int , hidden_feature: int , out_feature: int, p: float = 0.) -> None:
         super().__init__()
         self.fc1 = nn.Linear(in_feature, hidden_feature)
         self.act = nn.Tanhshrink()
@@ -112,7 +114,8 @@ class EncoderBlock(nn.Module):
         attn_p (float, optional): Drop out ratio for attn block. Defaults to 0.
         p (float, optional): Drop out ratio for projection. Defaults to 0.
     """        
-    def __init__(self, dim, n_heads, mlp_ratio=4.0, qkv_bias=True, p=0., attn_p=0.,) -> None:
+    def __init__(self, dim: int, n_heads: int, mlp_ratio: float = 4.0, qkv_bias: bool = True, 
+                 p: float = 0., attn_p: float = 0.,) -> None:
         super().__init__()
         self.norm1 = nn.LayerNorm(dim, eps=1e-6)
         self.attn = Attention(
@@ -181,9 +184,10 @@ class ScepterVisionTransformer(nn.Module):
         attn_type (str, optional): Spatiotemporal encoding strategy. Defaults to 'space_time'
         n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """        
-    def __init__(self, img_size, patch_size=7, in_chans=1, embed_dim=768, down_sample_ratio=1.,
-                 depth=2, n_heads=12, mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.,
-                 attn_type='space_time', n_timepoints=490) -> None:
+    def __init__(self, img_size: Tuple, patch_size: int = 7, in_chans: int = 1, embed_dim: int = 768, 
+                 down_sample_ratio: float = 1., depth: int = 2, n_heads: int = 12, mlp_ratio: float = 4., 
+                 qkv_bias: bool = True, p: float = 0., attn_p: float = 0., attn_type: str = 'space_time', 
+                 n_timepoints: int = 490) -> None:
         super().__init__()
         self.attention_type = attn_type
         self.down_sampling_ratio = down_sample_ratio
