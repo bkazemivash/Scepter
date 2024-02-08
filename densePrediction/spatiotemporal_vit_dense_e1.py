@@ -7,8 +7,9 @@ space_time and sequential_encoders scenarios for encoding both space and time di
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 from typing import Tuple
-from tools.utils import configure_patch_embedding
+from tools.utils import configure_patch_embedding, tuple_prod
 
 class PatchEmbed(nn.Module):
     """Split volume into patches.
@@ -135,18 +136,31 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class SmoothingHead(nn.Module):
-    def __init__(self, embed_dim, head_dim, nonlinearity=False) -> None:
+class PositionalEncoding(nn.Module):
+    """Implementation of position embedding for tuning temporal variations
+        between differnet timepoints.
+
+    Args:
+        embed_dim (int): Dimension of embedding.
+        max_len (int, optional): Length of sequence. Defaults to 10.
+        dropout (float, optional): Drop out ratio for Position Encoding block. Defaults to 0.1.
+    """    
+    def __init__(self, embed_dim: int, max_len: int = 10, dropout: float = 0.1):
         super().__init__()
-        self.head_dim = head_dim
-        self.act = nn.Tanhshrink() if nonlinearity else nn.Identity()
-        self.blur = nn.Conv3d(embed_dim, 1, kernel_size=5, padding=2)
-    
-    def forward(self, x):
-        x = F.interpolate(x, size=tuple(self.head_dim), mode='nearest')
-        x = self.blur(x)
-        x = self.act(x)
-        return x
+        self.dropout = nn.Dropout(p=dropout)
+        self.ac = nn.Tanhshrink()
+        _position = torch.arange(max_len).unsqueeze(1)
+        _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(10000.0) / embed_dim))
+        pe = torch.zeros(max_len, embed_dim)
+        pe[:, 0::2] = torch.sin(_position * _div_term)
+        pe[:, 1::2] = torch.cos(_position * _div_term)
+        
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.pe
+        x = self.ac(x)
+        return self.dropout(x)
 
 
 class ScepterVisionTransformer(nn.Module):
@@ -208,8 +222,7 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.head = SmoothingHead(embed_dim, img_size, True)
-        self.variation_token = nn.Parameter(torch.rand(1, self.time_dim, self.patch_embed.n_patches, embed_dim))   
+        self.variation_token = PositionalEncoding(tuple_prod(self.patch_embed.img_size), max_len=self.time_dim, dropout=0.2,)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
@@ -250,13 +263,10 @@ class ScepterVisionTransformer(nn.Module):
         else:
             n_samples //= self.time_dim
 
-        x = self.norm(x)
-        x = x.reshape(n_samples, self.time_dim, n_patch, -1)
-        x = x * self.variation_token.expand(n_samples, -1, -1, -1)     
-        n_samples *= self.time_dim
-        x = x.reshape(n_samples, *self.patch_embed.up_head, -1).permute(0,4,1,2,3)        
-        x = self.head(x)
-        n_samples //= self.time_dim
+        x = self.norm(x)        
+        x = x.reshape(n_samples, self.time_dim, n_patch, -1).flatten(2)
+        x = F.interpolate(x, torch.prod(torch.tensor(self.patch_embed.img_size)), mode='nearest')
+        x = self.variation_token(x)   
         x = x.reshape(n_samples, 1, self.time_dim, *self.patch_embed.img_size).permute(0,1,3,4,5,2)
 
         return x
