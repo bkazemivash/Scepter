@@ -222,7 +222,7 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.variation_token = PositionalEncoding(tuple_prod(self.patch_embed.img_size), max_len=self.time_dim, dropout=0.2,)
+        self.variation_token = PositionalEncoding(tuple_prod(self.patch_embed.img_size), max_len=self.time_dim,)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
