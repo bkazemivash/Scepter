@@ -8,10 +8,10 @@ MODEL:
   img_size: [53, 63, 52]
   patch_size: 5
   in_chans: 1
-  embed_dim: 96
+  embed_dim: 144
   down_sample_ratio: 1.
   depth: 1
-  n_heads: 6
+  n_heads: 8
   mlp_ratio: 1
   qkv_bias: True
   p: 0.1

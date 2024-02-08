@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E8
-  name: dp_ViT_DMN13_8
+  tag: DMN13E12
+  name: dp_ViT_DMN13_12
   edition: 1
   architecture: ViT
   save_model: True
@@ -14,9 +14,9 @@ MODEL:
   n_heads: 6
   mlp_ratio: 1
   qkv_bias: True
-  p: 0.1
-  attn_p: 0.
-  attn_type: sequential_encoders
+  p: 0.3
+  attn_p: 0.4
+  attn_type: space_time
   n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
@@ -35,7 +35,7 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 150
+  epochs: 50
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8
@@ -45,9 +45,9 @@ TRAIN:
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: HYB
+  loss: COS
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: HYB
+  metric: COS
