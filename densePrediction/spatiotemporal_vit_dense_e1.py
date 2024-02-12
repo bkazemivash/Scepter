@@ -148,12 +148,11 @@ class PositionalEncoding(nn.Module):
         max_len (int, optional): Length of sequence. Defaults to 10.
         dropout (float, optional): Drop out ratio for Position Encoding block. Defaults to 0.1.
     """    
-    def __init__(self, embed_dim: int, max_len: int = 10, dropout: float = 0.1):
+    def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        self.ac = nn.Tanhshrink()
+        self.ac = nn.RReLU(lower=0.1, upper=0.7)
         _position = torch.arange(max_len).unsqueeze(1)
-        _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(10000.0) / embed_dim))
+        _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(100_000.0) / embed_dim))
         pe = torch.zeros(max_len, embed_dim)
         pe[:, 0::2] = torch.sin(_position * _div_term)
         pe[:, 1::2] = torch.cos(_position * _div_term)
@@ -163,7 +162,7 @@ class PositionalEncoding(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x + self.pe
         x = self.ac(x)
-        return self.dropout(x)
+        return x
 
 
 class ScepterVisionTransformer(nn.Module):
