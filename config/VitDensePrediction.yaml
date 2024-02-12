@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E12
-  name: dp_ViT_DMN13_12
+  tag: DMN13E2
+  name: dp_ViT_DMN13_2
   edition: 1
   architecture: ViT
   save_model: True
@@ -16,7 +16,7 @@ MODEL:
   qkv_bias: True
   p: 0.3
   attn_p: 0.4
-  attn_type: space_time
+  attn_type: sequential_encoders
   n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
@@ -35,7 +35,7 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 50
+  epochs: 70
   early_stop: False
   base_lr: 1e-3
   min_lr: 1e-8

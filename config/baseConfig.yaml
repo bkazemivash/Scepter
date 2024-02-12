@@ -16,7 +16,7 @@ MODEL:
   qkv_bias: True
   p: 0.1
   attn_p: 0.
-  attn_type: sequential_encoders
+  attn_type: space_time
   n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
