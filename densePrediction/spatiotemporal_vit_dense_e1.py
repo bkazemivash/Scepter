@@ -90,7 +90,7 @@ class MLP(nn.Module):
     def __init__(self, in_feature: int , hidden_feature: int , out_feature: int, p: float = 0.) -> None:
         super().__init__()
         self.fc1 = nn.Linear(in_feature, hidden_feature)
-        self.act = nn.Tanhshrink()
+        self.act = nn.RReLU(lower=0.1, upper=0.7)
         self.fc2 = nn.Linear(hidden_feature, out_feature)
         self.drop = nn.Dropout(p)
 
@@ -150,7 +150,7 @@ class PositionalEncoding(nn.Module):
     """    
     def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
-        self.ac = nn.RReLU(lower=0.1, upper=0.7)
+        self.ac = nn.Tanhshrink()
         _position = torch.arange(max_len).unsqueeze(1)
         _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(100_000.0) / embed_dim))
         pe = torch.zeros(max_len, embed_dim)
