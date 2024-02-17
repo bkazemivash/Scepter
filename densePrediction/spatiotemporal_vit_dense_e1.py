@@ -150,7 +150,6 @@ class PositionalEncoding(nn.Module):
     """    
     def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
-        self.ac = nn.Tanhshrink()
         _position = torch.arange(max_len).unsqueeze(1)
         _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(100_000.0) / embed_dim))
         pe = torch.zeros(max_len, embed_dim)
@@ -161,6 +160,32 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x + self.pe
+        return x
+    
+class DecoderHead(nn.Module):
+    def __init__(self, embed_dim: int, timepoints: int, md_embed: tuple, head_dim: tuple, k_size: int = 5, 
+                 st_size: int = 2,) -> None:
+        super().__init__()
+        self.head_dim = head_dim
+        self.hid_dim = md_embed
+        self.fc = nn.Linear(embed_dim, 1)
+        self.variation_token = PositionalEncoding(tuple_prod(md_embed), max_len=timepoints,)
+        self.up = nn.Sequential(
+                    nn.ConvTranspose3d(timepoints, timepoints, k_size, st_size, groups=timepoints),
+                    nn.BatchNorm3d(timepoints),
+                    nn.ConvTranspose3d(timepoints, timepoints, k_size, st_size, groups=timepoints),
+                    nn.BatchNorm3d(timepoints),
+                )
+        self.ac = nn.Tanhshrink()
+        
+    def forward(self, x):
+        x = self.fc(x)
+        x = x.squeeze()
+        x = self.variation_token(x)
+        b, t, _ = x.shape
+        x = x.reshape((b, t) + self.hid_dim)
+        x = self.up(x)
+        x = F.interpolate(x, tuple(self.head_dim), mode='nearest')
         x = self.ac(x)
         return x
 
@@ -225,7 +250,7 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.variation_token = PositionalEncoding(tuple_prod(self.patch_embed.img_size), max_len=self.time_dim,)
+        self.head = DecoderHead(embed_dim, self.time_dim, self.patch_embed.up_head, self.patch_embed.img_size)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
@@ -267,9 +292,7 @@ class ScepterVisionTransformer(nn.Module):
             n_samples //= self.time_dim
 
         x = self.norm(x)        
-        x = x.reshape(n_samples, self.time_dim, n_patch, -1).flatten(2)
-        x = F.interpolate(x, torch.prod(torch.tensor(self.patch_embed.img_size)), mode='nearest')
-        x = self.variation_token(x)   
-        x = x.reshape(n_samples, 1, self.time_dim, *self.patch_embed.img_size).permute(0,1,3,4,5,2)
-
+        x = x.reshape(n_samples, self.time_dim, n_patch, -1)
+        x = self.head(x)
+        x = x.unsqueeze(1).permute(0,1,3,4,5,2)
         return x
