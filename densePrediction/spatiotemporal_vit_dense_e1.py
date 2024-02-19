@@ -7,7 +7,6 @@ space_time and sequential_encoders scenarios for encoding both space and time di
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
 from typing import Tuple
 from tools.utils import configure_patch_embedding, tuple_prod
 
@@ -151,7 +150,8 @@ class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
         _position = torch.arange(max_len).unsqueeze(1)
-        _div_term = torch.exp(torch.arange(0, embed_dim, 2, dtype=torch.float) * (-math.log(100_000.0) / embed_dim))
+        _position[1::2] *= -1
+        _div_term =  1.0 / (10_000 ** (torch.arange(0, embed_dim, 2, dtype=torch.float) / embed_dim))
         pe = torch.zeros(max_len, embed_dim)
         pe[:, 0::2] = torch.sin(_position * _div_term)
         pe[:, 1::2] = torch.cos(_position * _div_term)
