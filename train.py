@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss, MSELoss, CosineSimilarity
+from torch.nn import MSELoss, CosineSimilarity
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
@@ -18,8 +18,8 @@ def criterion(x1: torch.Tensor,
               x2: torch.Tensor, 
               loss_function: str = 'MSE', 
               **kwargs) -> torch.Tensor:
-    """Computes loss value based on the defined task. We have CrossEntrop loss for Recognition, 
-        while MSE, COS, and HYB are loss functions for Dense Prediction.
+    """Computes loss value based on the defined task. We have different type of loss 
+        functions like MSE, COS, and HYB for Dense Prediction.
 
     Args:
         x1 (torch.Tensor): Output of the model.
@@ -30,25 +30,17 @@ def criterion(x1: torch.Tensor,
     Returns:
         torch.Tensor: Loss value of given tensors.
     """ 
-    if loss_function == 'CrossEntropy':
-        weights_ = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
-        metric = CrossEntropyLoss(weight=weights_)
-        if x1.shape[1] == 1:
-            x1 = x1.squeeze()
-            x2 = x2.float()
-            metric = BCEWithLogitsLoss(weight=weights_) 
-        return metric(x1, x2)
-    elif loss_function == 'Correlation':
-        cos = CosineSimilarity(dim=1, eps=1e-6)
-        metric = 1. - cos(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))
-        return metric.sum()
+    if loss_function == 'CORR':
+        metric = CosineSimilarity(dim=1, eps=1e-6)
+        x1, x2 = x1.contiguous().view(x1.size(0), -1), x2.contiguous().view(x2.size(0), -1)
+        return (1. - metric(x1 - x1.mean(dim=1, keepdim=True), x2 - x2.mean(dim=1, keepdim=True))).mean()
     elif loss_function == 'MSE':
         metric = MSELoss(reduction='sum')
         return metric(x1, x2)
     elif loss_function == 'COS':
         bs = x1.shape[0]
         metric = CosineSimilarity(dim=1, eps=1e-6)
-        return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).sum()
+        return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
     else:
         mse_ = MSELoss(reduction='mean')
         cos_ = CosineSimilarity(dim=-1, eps=1e-6)
