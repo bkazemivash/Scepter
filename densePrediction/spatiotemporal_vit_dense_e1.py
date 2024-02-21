@@ -145,7 +145,6 @@ class PositionalEncoding(nn.Module):
     Args:
         embed_dim (int): Dimension of embedding.
         max_len (int, optional): Length of sequence. Defaults to 10.
-        dropout (float, optional): Drop out ratio for Position Encoding block. Defaults to 0.1.
     """    
     def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
