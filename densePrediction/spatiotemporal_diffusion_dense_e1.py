@@ -10,17 +10,23 @@ from torch.nn.functional import interpolate
 from typing import Tuple
 
 
-class ProjectionUnit(nn.Module):
-    def __init__(self, 
-                 in_ch=1, 
-                 embed_dim=16,
-                 enable_bias=True,
-                 enable_activation=True) -> None:
+class DiffusionModel(nn.Module):
+    def __init__(self, base_mdl: nn.Module, noise_step: int = 1000, beta_begin: float = 1e-4, beta_end: float = 0.02, 
+                 img_size: int = 64, ) -> None:
         super().__init__()
-        self.proj = nn.Conv3d(in_ch, embed_dim, kernel_size=1, bias=enable_bias)
-        self.act = nn.ReLU6() if enable_activation else nn.Identity()
+        self.noise_step = noise_step
+        self.img_size = img_size
+        self.backbone = base_mdl
 
-    def forward(self, x):
-        x = self.proj(x)
-        x = self.act(x)
-        return x
+        self.beta = torch.linspace(beta_begin, beta_end, noise_step)    
+        self.alpha = 1. - self.beta
+        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
+    
+    def noisy_image(self, x: torch.Tensor, t: int,) -> torch.Tensor:
+        sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
+        sqrt_one_minus_alpha_hat = torch.sqrt(1. - self.alpha_hat[t])[:, None, None, None]
+        epsilon =torch.randn_like(x)
+        return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon, epsilon
+    
+    def sample_timesteps(self, n: int, ) -> torch.Tensor:
+        return torch.randint(low = 1, high = self.noise_step, size=(n,))
