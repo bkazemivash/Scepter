@@ -5,7 +5,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import MSELoss, CosineSimilarity
+from torch.nn import MSELoss, CosineSimilarity, L1Loss
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from lib.data_io import ScepterViTDataset
@@ -41,10 +41,13 @@ def criterion(x1: torch.Tensor,
         bs = x1.shape[0]
         metric = CosineSimilarity(dim=1, eps=1e-6)
         return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
+    elif loss_function == 'VAR':
+        metric1 = MSELoss(reduction='sum')
+        metric2 = L1Loss(reduction='sum')
+        return 0.8 * metric1(x1, x2) + metric2(torch.diff(x1, dim=-1), torch.diff(x2, dim=-1))
     else:
-        mse_ = MSELoss(reduction='mean')
-        cos_ = CosineSimilarity(dim=-1, eps=1e-6)
-        return mse_(x1, x2) + (1. - cos_(x1, x2)).sum()
+        metric = MSELoss(reduction='mean')
+        return metric(x1, x2) + (1. / torch.var(x1, dim=-1).mean())
 
 
 def main():
