@@ -170,10 +170,10 @@ class DecoderHead(nn.Module):
         self.fc = nn.Linear(embed_dim, 1)
         self.variation_token = PositionalEncoding(tuple_prod(md_embed), max_len=timepoints,)
         self.up = nn.Sequential(
+                    nn.ConvTranspose3d(timepoints, timepoints, k_size + 2, groups=timepoints),
                     nn.ConvTranspose3d(timepoints, timepoints, k_size, st_size, groups=timepoints),
-                    nn.BatchNorm3d(timepoints),
-                    nn.ConvTranspose3d(timepoints, timepoints, k_size, st_size, groups=timepoints),
-                    nn.BatchNorm3d(timepoints),
+                    nn.ConvTranspose3d(timepoints, timepoints, k_size + 4, groups=timepoints, dilation = 2),
+                    nn.Conv3d(timepoints, timepoints, 1, groups=timepoints)
                 )
         self.ac = nn.Tanhshrink()
         
@@ -249,7 +249,12 @@ class ScepterVisionTransformer(nn.Module):
                                         attn_p=attn_p,)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.head = DecoderHead(embed_dim, self.time_dim, self.patch_embed.up_head, self.patch_embed.img_size)
+        self.head = DecoderHead(
+                        embed_dim, 
+                        self.time_dim, 
+                        self.patch_embed.up_head, 
+                        self.patch_embed.img_size, 
+                        self.patch_embed.patch_size,)
 
     def forward(self, x):
         if self.down_sampling_ratio != 1.0:
