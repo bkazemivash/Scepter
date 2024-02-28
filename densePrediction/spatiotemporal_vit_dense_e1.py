@@ -149,7 +149,6 @@ class PositionalEncoding(nn.Module):
     def __init__(self, embed_dim: int, max_len: int = 10,):
         super().__init__()
         _position = torch.arange(max_len).unsqueeze(1)
-        _position[1::2] *= -1
         _div_term =  1.0 / (10_000 ** (torch.arange(0, embed_dim, 2, dtype=torch.float) / embed_dim))
         pe = torch.zeros(max_len, embed_dim)
         pe[:, 0::2] = torch.sin(_position * _div_term)
@@ -180,6 +179,7 @@ class DecoderHead(nn.Module):
     def forward(self, x):
         x = self.fc(x)
         x = x.squeeze()
+        x -= x.mean(dim=1).unsqueeze(1)
         x = self.variation_token(x)
         b, t, _ = x.shape
         x = x.reshape((b, t) + self.hid_dim)
