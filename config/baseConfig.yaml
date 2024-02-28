@@ -8,14 +8,14 @@ MODEL:
   img_size: [53, 63, 52]
   patch_size: 5
   in_chans: 1
-  embed_dim: 144
+  embed_dim: 96
   down_sample_ratio: 1.
   depth: 1
-  n_heads: 8
+  n_heads: 6
   mlp_ratio: 1
   qkv_bias: True
-  p: 0.1
-  attn_p: 0.
+  p: 0.3
+  attn_p: 0.4
   attn_type: space_time
   n_timepoints: 10
 DATASET:
