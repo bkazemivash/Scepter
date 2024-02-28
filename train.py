@@ -42,14 +42,10 @@ def criterion(x1: torch.Tensor,
         metric = CosineSimilarity(dim=1, eps=1e-6)
         return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
     elif loss_function == 'VAR':
-        metric1 = MSELoss(reduction='mean')
-        metric2 = L1Loss(reduction='mean')
-        return metric1(x1, x2) + metric2(torch.diff(x1, dim=-1), torch.diff(x2, dim=-1))
-    elif loss_function == 'DIS':
-        D = torch.abs(x1) + 1.
-        D = torch.log(torch.div(D[1:], D[:-1])).abs().mean()
-        metric1 = MSELoss(reduction='mean')
-        return metric1(x1, x2) + 1. / D
+        bs = x1.shape[0]
+        metric1 = MSELoss(reduction='sum')
+        metric2 = L1Loss(reduction='sum')
+        return (metric1(x1, x2) + metric2(torch.diff(x1, dim=-1), torch.diff(x2, dim=-1))) / bs
     else:
         metric1 = MSELoss(reduction='sum')
         return torch.log(1. + (metric1(x1, x2) / torch.diff(x1, dim=-1).abs().sum()))
