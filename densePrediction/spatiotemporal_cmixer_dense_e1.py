@@ -1,5 +1,6 @@
-""" Implementation of spatiotemporal ConvMixer model for dense prediction of
-    brain dynmic maps.
+""" 
+Implementation of spatiotemporal ConvMixer model for dense prediction of
+brain dynmic maps.
 """
 
 import torch
