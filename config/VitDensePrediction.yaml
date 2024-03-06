@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E4
-  name: dp_ViT_DMN13_4
+  tag: DMN13E18
+  name: dp_ViT_DMN13_18
   edition: 1
   architecture: ViT
   save_model: True
