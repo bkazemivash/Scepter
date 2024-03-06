@@ -236,7 +236,7 @@ class DiffusionModel(nn.Module):
     
     @torch.no_grad  
     def sample(self, condition: torch.Tensor, n):
-        self.backbon.eval()
+        self.backbone.eval()
         x= torch.rand((n,) + self.img_size)
         for i in reversed(range(1, self.noise_steps)):
             t = (torch.ones(n) * i).long()
@@ -249,7 +249,7 @@ class DiffusionModel(nn.Module):
         else:
             noise = torch.zeros_like(x)
         x = 1. / torch.sqrt(alpha) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + torch.sqrt(beta) * noise
-        self.backbon.train()
+        self.backbone.train()
 
         return x
     
