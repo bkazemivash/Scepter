@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from typing import Tuple
 from tools.utils import configure_patch_embedding, tuple_prod
 
+
 class PatchEmbed(nn.Module):
     """Split volume into patches.
 
@@ -161,7 +162,7 @@ class PositionalEncoding(nn.Module):
         return x
     
 class DecoderHead(nn.Module):
-    def __init__(self, embed_dim: int, timepoints: int, md_embed: tuple, head_dim: tuple, k_size: int = 5, 
+    def __init__(self, embed_dim: int, timepoints: int, md_embed: tuple, head_dim: tuple, k_size: int = 5,
                  st_size: int = 2,) -> None:
         super().__init__()
         self.head_dim = head_dim
@@ -172,20 +173,24 @@ class DecoderHead(nn.Module):
                     nn.ConvTranspose3d(timepoints, timepoints, k_size + 2, groups=timepoints),
                     nn.ConvTranspose3d(timepoints, timepoints, k_size, st_size, groups=timepoints),
                     nn.ConvTranspose3d(timepoints, timepoints, k_size + 4, groups=timepoints, dilation = 2),
-                    nn.Conv3d(timepoints, timepoints, 1, groups=timepoints)
                 )
-        self.ac = nn.Tanhshrink()
-        
+        self.ac = nn.Identity()
+        self.head = nn.Sequential(
+                    nn.Conv3d(timepoints, timepoints, 1, groups=timepoints),
+                    nn.RReLU(),
+                )
+
     def forward(self, x):
         x = self.fc(x)
         x = x.squeeze()
         x -= x.mean(dim=1).unsqueeze(1)
         x = self.variation_token(x)
+        x = self.ac(x)
         b, t, _ = x.shape
         x = x.reshape((b, t) + self.hid_dim)
         x = self.up(x)
         x = F.interpolate(x, tuple(self.head_dim), mode='nearest')
-        x = self.ac(x)
+        x = self.head(x)
         return x
 
 
