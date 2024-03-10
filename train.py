@@ -42,13 +42,9 @@ def criterion(x1: torch.Tensor,
         metric = CosineSimilarity(dim=1, eps=1e-6)
         return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
     elif loss_function == 'VAR':
-        bs = x1.shape[0]
-        metric1 = MSELoss(reduction='sum')
-        metric2 = L1Loss(reduction='sum')
-        return (metric1(x1, x2) + metric2(torch.diff(x1, dim=-1), torch.diff(x2, dim=-1))) / bs
+        return torch.log10(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1)) + 1e-12).sum() / x1.shape[0]
     else:
-        metric1 = MSELoss(reduction='sum')
-        return torch.log(1. + (metric1(x1, x2) / torch.diff(x1, dim=-1).abs().sum()))
+        return (torch.log10(torch.cosh(x1 - x2) + 1e-12).sum() + torch.log10(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1)) + 1e-12).sum()) / (2 * x1.shape[0])
 
 
 def main():
