@@ -213,12 +213,13 @@ class ConditionalUNet(nn.Module):
 
 class DiffusionModel(nn.Module):
     def __init__(self, backbone_arch: str = 'C-UNet', noise_step: int = 1000, beta_begin: float = 1e-4, 
-                 beta_end: float = 0.02, img_size: tuple = (10, 33, 43, 32), ) -> None:
+                 beta_end: float = 0.02, img_size: tuple = (10, 33, 43, 32),) -> None:
+        
         super().__init__()
         self.noise_step = noise_step
         self.img_size = img_size
 
-        self.beta = torch.linspace(beta_begin, beta_end, noise_step)    
+        self.beta = torch.linspace(beta_begin, beta_end, noise_step)
         self.alpha = 1. - self.beta
         self.alpha_hat = torch.cumprod(self.alpha, dim=0)
         self.backbone = ConditionalUNet(in_ch=img_size[0], out_ch=img_size[0]) if backbone_arch == 'C-UNet' else None
@@ -228,14 +229,15 @@ class DiffusionModel(nn.Module):
         sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
         sqrt_one_minus_alpha_hat = torch.sqrt(1. - self.alpha_hat[t])[:, None, None, None]
         epsilon =torch.randn_like(x)
+        print([sqrt_alpha_hat.device, x.device, sqrt_one_minus_alpha_hat.device, epsilon.device])
         return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon, epsilon
     
     @torch.no_grad    
     def sample_timesteps(self, n: int, ) -> torch.Tensor:
-        return torch.randint(low = 1, high = self.noise_step, size=(n,))
+        return torch.randint(low = 1, high = self.noise_step, size=(n,),)
     
     @torch.no_grad  
-    def sample(self, condition: torch.Tensor, n):
+    def sample(self, condition: torch.Tensor, n):    
         self.backbone.eval()
         x= torch.rand((n,) + self.img_size)
         for i in reversed(range(1, self.noise_steps)):
@@ -255,7 +257,7 @@ class DiffusionModel(nn.Module):
     
     def forward(self, x: torch.Tensor):
         assert self.backbone != None, ValueError('This backbone architecutre is not supported yet!')
-        x = F.interpolate(x, self.img_size)
+        x = F.interpolate(x, self.img_size[1:])
         t = self.sample_timesteps(x.shape[0])
         x, noise = self.noisy_image(x, t)
         x = self.backbone(x, t)
