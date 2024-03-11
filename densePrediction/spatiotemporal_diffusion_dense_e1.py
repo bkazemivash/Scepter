@@ -149,6 +149,29 @@ class Up(nn.Module):
         return x + emb
 
 
+class ConditionEncoder(nn.Module):
+    """Encoding condition image to latent space. 
+
+    Args:
+        in_ch (int): Input channel size.
+        out_ch (int): Output channel size.
+        emb_dim (int, optional): Embedding dimenstion of iteration index. Defaults to 256.
+    """
+    def __init__(self, in_ch: int, out_ch: int, emb_dim: int = 64):
+        super().__init__()
+        self.maxpool_conv = nn.Sequential(
+            nn.MaxPool3d(2),
+            DoubleConv(in_ch, in_ch, residual=True),
+            DoubleConv(in_ch, out_ch),
+        )
+
+    def forward(self, x, t):
+        x = self.maxpool_conv(x)
+        _, _, i, j, z = x.shape
+        emb = self.emb_layer(t)[:, :, None, None, None].repeat(1, 1, i, j, z)
+        return x + emb
+
+
 class ConditionalUNet(nn.Module):
     def __init__(self, in_ch=10, out_ch=10, emb_dim=64):
         super().__init__()
@@ -182,7 +205,7 @@ class ConditionalUNet(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def forward(self, x, t):
+    def forward(self, x, y, t):
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.it_emb_dim)
 
@@ -226,10 +249,9 @@ class DiffusionModel(nn.Module):
     
     @torch.no_grad
     def noisy_image(self, x: torch.Tensor, t: torch.tensor,) -> torch.Tensor:
-        sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
-        sqrt_one_minus_alpha_hat = torch.sqrt(1. - self.alpha_hat[t])[:, None, None, None]
+        sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None, None]
+        sqrt_one_minus_alpha_hat = torch.sqrt(1. - self.alpha_hat[t])[:, None, None, None, None]
         epsilon =torch.randn_like(x)
-        print([sqrt_alpha_hat.device, x.device, sqrt_one_minus_alpha_hat.device, epsilon.device])
         return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon, epsilon
     
     @torch.no_grad    
@@ -255,10 +277,10 @@ class DiffusionModel(nn.Module):
 
         return x
     
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, y: torch.Tensor):
         assert self.backbone != None, ValueError('This backbone architecutre is not supported yet!')
         x = F.interpolate(x, self.img_size[1:])
         t = self.sample_timesteps(x.shape[0])
         x, noise = self.noisy_image(x, t)
-        x = self.backbone(x, t)
+        x = self.backbone(x, y, t)
         return x, noise
