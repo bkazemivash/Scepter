@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DM40E3
-  name: dp_ViT_DM40_11
+  tag: Test1
+  name: dp_ViT_test_1
   edition: 1
   architecture: ViT
   save_model: True
@@ -45,9 +45,9 @@ TRAIN:
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: HYB
+  loss: CMP
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: HYB
+  metric: CMP
