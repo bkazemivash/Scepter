@@ -5,8 +5,9 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import MSELoss, CosineSimilarity, L1Loss
+from torch.nn import MSELoss, CosineSimilarity, KLDivLoss, BCEWithLogitsLoss
 from torch.utils.tensorboard.writer import SummaryWriter
+from torch.nn import functional as F
 
 from lib.data_io import ScepterViTDataset
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
@@ -41,10 +42,16 @@ def criterion(x1: torch.Tensor,
         bs = x1.shape[0]
         metric = CosineSimilarity(dim=1, eps=1e-6)
         return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
-    elif loss_function == 'VAR':
-        return torch.log10(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1)) + 1e-12).sum() / x1.shape[0]
+    elif loss_function == 'LCSH':
+        return torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+    elif loss_function == 'DLT':
+        return torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
+    elif loss_function == 'KLD':
+        metric = KLDivLoss(reduction="batchmean")   
+        return metric(F.log_softmax(x1, dim=-1), F.softmax(x2, dim=-1))
     else:
-        return (torch.log10(torch.cosh(x1 - x2) + 1e-12).sum() + torch.log10(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1)) + 1e-12).sum()) / (2 * x1.shape[0])
+        metric = BCEWithLogitsLoss(reduction='sum')
+        return metric(x1, F.sigmoid(x2))
 
 
 def main():
