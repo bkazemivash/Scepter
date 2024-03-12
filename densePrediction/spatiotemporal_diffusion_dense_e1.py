@@ -212,7 +212,8 @@ class ConditionalUNet(nn.Module):
 
     @torch.no_grad
     def pos_encoding(self, t, channels):
-        inv_freq = 1.0 / (10000 ** (torch.arange(0, channels, 2).float() / channels))
+        dev = next(self.parameters()).device
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, channels, 2).float() / channels)).to(dev)
         pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
@@ -248,16 +249,17 @@ class ConditionalUNet(nn.Module):
 
 class DiffusionModel(nn.Module):
     def __init__(self, backbone_arch: str = 'C-UNet', noise_step: int = 1000, beta_begin: float = 1e-4, 
-                 beta_end: float = 0.02, img_size: tuple = (10, 33, 43, 32),) -> None:
+                 beta_end: float = 0.02, img_size: tuple = (10, 33, 43, 32), machine='cpu') -> None:
         
         super().__init__()
         self.noise_step = noise_step
         self.img_size = img_size
+        self.dev = machine
 
-        self.beta = torch.linspace(beta_begin, beta_end, noise_step)
+        self.beta = torch.linspace(beta_begin, beta_end, noise_step, device=machine)
         self.alpha = 1. - self.beta
         self.alpha_hat = torch.cumprod(self.alpha, dim=0)
-        self.backbone = ConditionalUNet(in_ch=img_size[0], out_ch=img_size[0]) if backbone_arch == 'C-UNet' else None
+        self.backbone = ConditionalUNet(in_ch=img_size[0], out_ch=img_size[0]).to(machine) if backbone_arch == 'C-UNet' else None
     
     @torch.no_grad
     def noisy_image(self, x: torch.Tensor, t: torch.tensor,) -> torch.Tensor:
@@ -268,7 +270,7 @@ class DiffusionModel(nn.Module):
     
     @torch.no_grad    
     def sample_timesteps(self, n: int, ) -> torch.Tensor:
-        return torch.randint(low = 1, high = self.noise_step, size=(n,),)
+        return torch.randint(low = 1, high = self.noise_step, size=(n,), device=self.dev)
     
     @torch.no_grad  
     def sample(self, y: torch.Tensor, n):    
