@@ -161,7 +161,7 @@ class AuxiliaryNet(nn.Module):
     def __init__(self, in_ch: int, mid_ch: int, out_ch: int,):
         super().__init__()
         self.stage1 = nn.Sequential(
-            DoubleConv(10, 16),
+            DoubleConv(in_ch, 16),
             nn.MaxPool3d(2),
             DoubleConv(16, 16, residual=True),
             DoubleConv(16, 32),
@@ -171,7 +171,7 @@ class AuxiliaryNet(nn.Module):
             nn.MaxPool3d(2),
             DoubleConv(64, 64, residual=True),
             DoubleConv(64, 64),    
-            nn.Conv3d(64, 64, kernel_size=3, ),                     
+            nn.Conv3d(64, out_ch, kernel_size=3,),                     
         )
 
     def forward(self, x):
@@ -198,7 +198,7 @@ class ConditionalUNet(nn.Module):
         self.down3 = Down(64, 64)
         self.sa3 = AttentionMechanism(64, 8)
 
-        self.bot1 = AuxiliaryNet(in_ch, 64, 16)
+        self.bot1 = AuxiliaryNet(in_ch, 16, 64)
         self.bot2 = DoubleConv(128, 128, residual=True)
         self.bot3 = DoubleConv(128, 64)
 
@@ -293,6 +293,7 @@ class DiffusionModel(nn.Module):
     
     def forward(self, x: torch.Tensor, y: torch.Tensor):
         assert self.backbone != None, ValueError('This backbone architecutre is not supported yet!')
+        x, y = x.squeeze().permute(0,4,1,2,3), y.squeeze()
         x = F.interpolate(x, self.img_size[1:])
         t = self.sample_timesteps(x.shape[0])
         x, noise = self.noisy_image(x, t)
