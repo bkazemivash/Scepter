@@ -346,10 +346,12 @@ def fetch_list_of_backup_files(model_arch: str) -> tuple:
 
     Returns:
         tuple: Includes list of files to backup.
-    """
-    file_names_ = ('VitDensePrediction.yaml', 'spatiotemporal_vit_dense_e1.py')
-    
+    """    
     if model_arch == 'CMIXER':
         file_names_ = ('CMixerDensePrediction.yaml', 'spatiotemporal_cmixer_dense_e1.py')
+    elif model_arch == 'ViT':
+        file_names_ = ('VitDensePrediction.yaml', 'spatiotemporal_vit_dense_e1.py')
+    else:
+        file_names_ = ('DiffusionDensePrediction.yaml', 'spatiotemporal_diffusion_dense_e1.py')
     
     return file_names_
