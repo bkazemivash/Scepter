@@ -12,6 +12,7 @@ from torch.nn import functional as F
 from lib.data_io import ScepterViTDataset
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
+from densePrediction.spatiotemporal_diffusion_dense_e1 import DiffusionModel
 from tools.utils import weights_init, fetch_list_of_backup_files
 from omegaconf import OmegaConf
 
@@ -114,6 +115,8 @@ def main():
     writer = SummaryWriter(log_dir=log_directory, comment=conf.EXPERIMENT.name)
     if model_architecture == 'ViT':
         base_model = ScepterVisionTransformer(**conf.MODEL)
+    elif model_architecture == 'Diffusion':
+        base_model = DiffusionModel(**conf.MODEL)        
     else:
         base_model = ScepterConvMixer(**conf.MODEL)
     base_model.apply(weights_init)
@@ -140,8 +143,12 @@ def main():
                 label = label.to(dev, non_blocking=True)
                 with torch.set_grad_enabled(phase == 'train'):
                     optimizer.zero_grad(set_to_none=True)
-                    preds = base_model(inp)
-                    loss = criterion(preds, label, conf.TRAIN.loss)
+                    if model_architecture == 'Diffusion':
+                        predicted_noise, noise = base_model(label, inp)
+                        loss = criterion(noise, predicted_noise, conf.TRAIN.loss)
+                    else:
+                        preds = base_model(inp)
+                        loss = criterion(preds, label, conf.TRAIN.loss)
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
