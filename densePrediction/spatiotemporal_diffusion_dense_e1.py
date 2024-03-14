@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Union
+from tqdm import tqdm
 
 
 class MLP(nn.Module):
@@ -170,8 +171,7 @@ class AuxiliaryNet(nn.Module):
             DoubleConv(32, 64),
             nn.MaxPool3d(2),
             DoubleConv(64, 64, residual=True),
-            DoubleConv(64, 64),    
-            nn.Conv3d(64, out_ch, kernel_size=3,),                     
+            DoubleConv(64, 64),              
         )
 
     def forward(self, x):
@@ -212,8 +212,9 @@ class ConditionalUNet(nn.Module):
 
     @torch.no_grad
     def pos_encoding(self, t, channels):
-        dev = next(self.parameters()).device
-        inv_freq = 1.0 / (10000 ** (torch.arange(0, channels, 2).float() / channels)).to(dev)
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, channels, 2).float() / channels))
+        if t.is_cuda:
+            inv_freq = inv_freq.cuda(t.get_device())
         pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
@@ -273,28 +274,27 @@ class DiffusionModel(nn.Module):
         return torch.randint(low = 1, high = self.noise_step, size=(n,), device=self.dev)
     
     @torch.no_grad  
-    def sample(self, y: torch.Tensor, n):    
+    def sample(self, y: torch.Tensor,): 
+        n = y.shape[0]   
         self.backbone.eval()
-        x= torch.rand((n,) + self.img_size)
-        for i in reversed(range(1, self.noise_steps)):
-            t = (torch.ones(n) * i).long()
+        x = torch.rand((n,) + tuple(self.img_size), device=y.device)
+        for i in tqdm(reversed(range(1, self.noise_step)), position=0):
+            t = (torch.ones(n, device=y.device) * i).long()
             predicted_noise = self.backbone(x,y,t)
             alpha = self.alpha[t][:, None, None, None, None]
             alpha_hat = self.alpha_hat[t][:, None, None, None, None]
             beta = self.beta[t][:, None, None, None, None]
-        if i> 1:
-            noise = torch.randn_like(x)
-        else:
-            noise = torch.zeros_like(x)
-        x = 1. / torch.sqrt(alpha) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + torch.sqrt(beta) * noise
+            if i> 1:
+                noise = torch.randn_like(x)
+            else:
+                noise = torch.zeros_like(x)
+            x = 1. / torch.sqrt(alpha) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + torch.sqrt(beta) * noise
         self.backbone.train()
-
         return x
     
     def forward(self, x: torch.Tensor, y: torch.Tensor):
         assert self.backbone != None, ValueError('This backbone architecutre is not supported yet!')
         x, y = x.squeeze().permute(0,4,1,2,3), y.squeeze()
-        x = F.interpolate(x, self.img_size[1:])
         t = self.sample_timesteps(x.shape[0])
         x, noise = self.noisy_image(x, t)
         x = self.backbone(x, y, t)
