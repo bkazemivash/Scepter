@@ -5,11 +5,12 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import MSELoss, CosineSimilarity, KLDivLoss, BCEWithLogitsLoss
+from torch.nn import MSELoss, CosineSimilarity, BCEWithLogitsLoss
 from torch.utils.tensorboard.writer import SummaryWriter
 from torch.nn import functional as F
 
 from lib.data_io import ScepterViTDataset
+from lib.summary_metrics import ssim_3D
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
 from densePrediction.spatiotemporal_diffusion_dense_e1 import DiffusionModel
@@ -47,12 +48,23 @@ def criterion(x1: torch.Tensor,
         return torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
     elif loss_function == 'DLT':
         return torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
-    elif loss_function == 'KLD':
-        metric = KLDivLoss(reduction="batchmean")   
-        return metric(F.log_softmax(x1, dim=-1), F.softmax(x2, dim=-1))
+    elif loss_function == 'SSIM3D':
+        b, c, x, y ,z, t = x1.shape
+        b *= t
+        x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        return 100 * (1 - ssim_3D(x1, x2, 7))
+    elif loss_function == 'DLTLCSH':
+        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        term2 = torch.log(torch.cosh(torch.diff(x1) - torch.diff(x2)) + 1).sum() / x1.shape[0]
+        return (term1 + term2) / 2
     else:
-        metric = BCEWithLogitsLoss(reduction='sum')
-        return metric(x1, F.sigmoid(x2))
+        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        b, c, x, y ,z, t = x1.shape
+        b *= t
+        x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        return term1 / ssim_3D(x1, x2, 7)
 
 
 def main():
