@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E25
-  name: dp_ViT_DMN13_25
+  tag: DMN13E29
+  name: dp_ViT_DMN13_29
   edition: 1
   architecture: ViT
   save_model: True
@@ -35,19 +35,19 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 70
+  epochs: 150
   early_stop: False
   base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 100
+  step_lr: 40
   batch_size: 2
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: CMP
+  loss: SSIM3D
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: CMP
+  metric: SSIM3D

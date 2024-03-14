@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E1
-  name: dp_Diffusion_DMN13_1
+  tag: DMN13E2
+  name: dp_Diffusion_DMN13_2
   edition: 1
   architecture: Diffusion
   save_model: True
@@ -28,12 +28,12 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 70
+  epochs: 500
   early_stop: False
   base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 100
+  step_lr: 30
   batch_size: 2
   workers: 1
   warmup_epochs: 0
