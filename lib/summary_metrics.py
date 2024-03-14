@@ -51,7 +51,7 @@ def mare_3D(output: torch.Tensor, prior: torch.Tensor, thr=0.) -> float:
     return error_.mean()
 
 
-def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5, channel=1) -> float:
+def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5, channel=1, reduction: str = 'mean') -> float:
     """Computes structural similarity index measure (SSIM) for the given images.
 
     Args:
@@ -60,6 +60,7 @@ def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5,
         window_size (int): Size of window for convolution layers.
         sigma (float, optional): Sigma coefficient od normal distribution. Defaults to 1.5.
         channel (int, optional): Input channel size of images. Defaults to 1.
+        reduction (str, optional): Reduction policy on output. Defaults to mean.
 
     Returns:
         float: SSIM metric for the input images.
@@ -69,6 +70,8 @@ def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5,
             exp(-((x - window_size // 2) ** 2) / float(2 * sigma**2)) for x in range(window_size)
         ]
     )
+    if img1.is_cuda:
+         gauss = gauss.cuda(img1.get_device())
     gauss = gauss / gauss.sum()
 
     window_1D = gauss.unsqueeze(1)
@@ -80,7 +83,7 @@ def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5,
         .unsqueeze(0)
         .unsqueeze(0)
     )
-    window_m = window_3D.expand(channel, 1, window_size, window_size, window_size).contiguous().double()
+    window_m = window_3D.expand(channel, 1, window_size, window_size, window_size).contiguous().type_as(img1)
     
     n_window_size = int(window_size // 2)
     mu1 = F.conv3d(img1, window_m, padding=n_window_size, groups=channel)
@@ -108,7 +111,14 @@ def ssim_3D(img1: torch.Tensor, img2: torch.Tensor, window_size: int, sigma=1.5,
         (mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2)
     )
 
-    return ssim_.mean()
+    if reduction == 'mean':
+         return ssim_.mean()
+    elif reduction == 'space_mean':
+        return ssim_.mean(dim=(1,2,3,4))
+    elif reduction == 'None':
+        return ssim_    
+    else:
+         raise ValueError('Choose a reduction scenario from [mean, space_mean, None].')
 
 
 def robust_scaling(x1: torch.Tensor):
