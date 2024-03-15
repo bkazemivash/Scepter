@@ -171,7 +171,8 @@ class AuxiliaryNet(nn.Module):
             DoubleConv(32, 64),
             nn.MaxPool3d(2),
             DoubleConv(64, 64, residual=True),
-            DoubleConv(64, 64),              
+            DoubleConv(64, 64),
+            nn.Conv3d(64, out_ch, kernel_size=3,),              
         )
 
     def forward(self, x):
@@ -295,6 +296,7 @@ class DiffusionModel(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor):
         assert self.backbone != None, ValueError('This backbone architecutre is not supported yet!')
         x, y = x.squeeze().permute(0,4,1,2,3), y.squeeze()
+        x = F.interpolate(x, self.img_size[1:])
         t = self.sample_timesteps(x.shape[0])
         x, noise = self.noisy_image(x, t)
         x = self.backbone(x, y, t)
