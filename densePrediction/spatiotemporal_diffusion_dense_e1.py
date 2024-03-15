@@ -176,8 +176,7 @@ class AuxiliaryNet(nn.Module):
         )
 
     def forward(self, x):
-        x = self.stage1(x)
-        return x
+        return self.stage1(x)
 
 
 class ConditionalUNet(nn.Module):
@@ -250,6 +249,16 @@ class ConditionalUNet(nn.Module):
 
 
 class DiffusionModel(nn.Module):
+    """Implementation of spatiotemporal conditional diffusion model.
+
+    Args:
+        backbone_arch (str, optional): Backbone architecutre. Defaults to 'C-UNet'.
+        noise_step (int, optional): Number of noise steps. Defaults to 1000.
+        beta_begin (float, optional): Lower bound of noise. Defaults to 1e-4.
+        beta_end (float, optional): Upper bound of noise. Defaults to 0.02.
+        img_size (tuple, optional): Shape of image tensor within model. Defaults to (10, 33, 43, 32).
+        machine (str, optional): Device to run the model. Defaults to 'cpu'.
+    """
     def __init__(self, backbone_arch: str = 'C-UNet', noise_step: int = 1000, beta_begin: float = 1e-4, 
                  beta_end: float = 0.02, img_size: tuple = (10, 33, 43, 32), machine='cpu') -> None:
         
