@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E28
-  name: dp_ViT_DMN13_28
+  tag: DMN13E29
+  name: dp_ViT_DMN13_29
   edition: 1
   architecture: ViT
   save_model: True
@@ -45,9 +45,9 @@ TRAIN:
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: CMP
+  loss: DLTLCSH
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: CMP
+  metric: DLTLCSH

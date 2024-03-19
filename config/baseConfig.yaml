@@ -10,7 +10,7 @@ MODEL:
   beta_begin: 1e-4 
   beta_end: 0.02
   img_size: [10, 33, 43, 32]
-  machine: 'cpu'
+  machine: 'cuda'
 DATASET:
   dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
