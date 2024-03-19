@@ -55,9 +55,11 @@ def criterion(x1: torch.Tensor,
         x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
         return 100 * (1 - ssim_3D(x1, x2, 7))
     elif loss_function == 'DLTLCSH':
-        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
-        term2 = torch.log(torch.cosh(torch.diff(x1) - torch.diff(x2)) + 1).sum() / x1.shape[0]
-        return (term1 + term2) / 2
+        bs = x1.shape[0]
+        metric = CosineSimilarity(dim=1, eps=1e-6)
+        term1 = torch.log(torch.cosh(torch.diff(x1) - torch.diff(x2)) + 1).sum()
+        term2 = metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1)).sum()
+        return term1 / (term2 * bs)
     else:
         term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
         b, c, x, y ,z, t = x1.shape
@@ -68,7 +70,10 @@ def criterion(x1: torch.Tensor,
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Training ViT recognition model')
+    parser = argparse.ArgumentParser(prog = 'Scepter framework', 
+                                     description = 'Scepter model for spatiotemporal dense prediction',
+                                     epilog = 'Check ReadMe file for more information.',
+                                     )
     parser.add_argument('-c', '--config', required=True, help='Path to the config file') 
     parser.add_argument('-m', '--mask', required=True, help='Path to the mask file')  
     parser.add_argument('-t', '--dataset', required=True, help='Path to pandas dataframe that keeps list of images')    
