@@ -1,6 +1,6 @@
 """
-Implementation of spatiotemporal Vision Transfor for dense prediction task with 
-space_time and sequential_encoders scenarios for encoding both space and time dimension.
+Implementation of spatiotemporal Vision Transfor for dense prediction task with space_time 
+and sequential_encoders scenarios for encoding both space and time dimension.
 """
 
 
@@ -158,7 +158,7 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.pe
+        x = x + self.pe[None, :, :]
         return x
     
 class DecoderHead(nn.Module):
