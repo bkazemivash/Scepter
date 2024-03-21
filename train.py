@@ -57,13 +57,22 @@ def criterion(x1: torch.Tensor,
         term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
         term2 = torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
         return (term1 + term2) / 2
+    elif loss_function == 'CHAIN':
+        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        b, c, x, y ,z, t = x1.shape
+        b *= t
+        x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
+        term2 = 1000 * (1 - ssim_3D(x1, x2, 7))
+        return term1 + term2
     else:
         term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
         b, c, x, y ,z, t = x1.shape
         b *= t
         x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
         x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
-        return term1 / ssim_3D(x1, x2, 7)
+        term2 = max(ssim_3D(x1, x2, 7), 1e-5)
+        return term1 / term2
 
 
 def main():
@@ -152,9 +161,9 @@ def main():
             else:
                 base_model.eval() 
             running_loss = 0.0
-            for inp, label in dataloaders[phase]:
-                inp = inp.to(dev, non_blocking=True)
-                label = label.to(dev, non_blocking=True)
+            for sample in dataloaders[phase]:
+                inp = sample['img'].to(dev, non_blocking=True)
+                label = sample['prior'].to(dev, non_blocking=True)
                 with torch.set_grad_enabled(phase == 'train'):
                     optimizer.zero_grad(set_to_none=True)
                     if model_architecture == 'Diffusion':
