@@ -5,9 +5,8 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import random_split
 from torch.nn.parallel import DataParallel
-from torch.nn import MSELoss, CosineSimilarity, BCEWithLogitsLoss
+from torch.nn import MSELoss, CosineSimilarity
 from torch.utils.tensorboard.writer import SummaryWriter
-from torch.nn import functional as F
 
 from lib.data_io import ScepterViTDataset
 from lib.summary_metrics import ssim_3D
