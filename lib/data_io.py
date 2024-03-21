@@ -85,7 +85,8 @@ class ScepterViTDataset(Dataset):
         self.verified_networks = valid_ids
         self.peak_slice = use_peak_slice if use_peak_slice else None
         self.transform = img_transform(is_4D=keep_shape, has_inp_ch=has_input_channel) if transform else None 
-        self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique())) if task == 'Recognition' else None
+        self.class_dict = to_index(list(self.info_dataframe.Diagnosis.unique()))
+        self.task = task
 
     def _load_img(self, sample_idx: int) -> torch.Tensor:  
         """Load and preprocess an fMRI image.
@@ -125,10 +126,12 @@ class ScepterViTDataset(Dataset):
             img = img.get_fdata()
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img)
+        if self.transform:
+            img = self.transform(img)            
         return img.float()
 
-    def _load_label_or_prior(self, sample_idx: int) -> torch.Tensor:
-        """Load label/prior of each sample and convert to a tensor.
+    def _load_prior(self, sample_idx: int) -> torch.Tensor:
+        """Load prior of each sample and convert to a tensor.
 
         Args:
             sample_idx (int): Index of a subject in dataset.
@@ -136,47 +139,50 @@ class ScepterViTDataset(Dataset):
         Returns:
             torch.Tensor: Index of relevent class.
         """
-        if self.class_dict:
-            status = self.info_dataframe.iloc[sample_idx].Diagnosis
-            return torch.tensor(self.class_dict[status], dtype=torch.long)
+        if self.task == 'Recognition':
+            return None
+        self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
+        if self.dataset_name == 'BSNIP':
+            img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
+            img = ica_mixture(img_dir,
+                                self.mask_img,
+                                self.verified_networks,
+                                self.stablize,
+                                self.time_bound,
+                                self.sampling_rate,
+                                False,
+                                self.keep_shape)
         else:
-            self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
-            if self.dataset_name == 'BSNIP':
-                img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
-                img = ica_mixture(img_dir,
-                                    self.mask_img,
-                                    self.verified_networks,
-                                    self.stablize,
-                                    self.time_bound,
-                                    self.sampling_rate,
-                                    False,
-                                    self.keep_shape)
-            else:
-                img_dir = self.info_dataframe.iloc[sample_idx].Prior
-                img = ica_mixture(img_dir,
-                                    self.mask_img,
-                                    self.verified_networks,
-                                    self.stablize,
-                                    self.time_bound,
-                                    self.sampling_rate,
-                                    self.keep_shape)
+            img_dir = self.info_dataframe.iloc[sample_idx].Prior
+            img = ica_mixture(img_dir,
+                                self.mask_img,
+                                self.verified_networks,
+                                self.stablize,
+                                self.time_bound,
+                                self.sampling_rate,
+                                self.keep_shape)
         if isinstance(img, Nifti1Image):
             img = img.get_fdata()
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img)            
-        return img.float() # type: ignore
+        return img.float().unsqueeze(0) # type: ignore
 
     def __len__(self):
         return len(self.info_dataframe)
 
     def __getitem__(self, idx):
         img = self._load_img(idx)
-        label = self._load_label_or_prior(idx)
+        prior = self._load_prior(idx)
         if self.peak_slice:
             cut_coord = slice(self.peak_slice[2]-1, self.peak_slice[2]+2)
             img = img[:,:,cut_coord]
-            label = label[:,:,cut_coord]
-        if self.transform:
-            img = self.transform(img)
-            label = label.unsqueeze(0)
-        return img, label
+            prior = prior[:,:,cut_coord]
+
+        sample = {'SubjectID': self.info_dataframe.iloc[idx].SubjectID,
+                  'Age': self.info_dataframe.iloc[idx].Age,
+                  'Gender': self.info_dataframe.iloc[idx].Gender,
+                  'Diagnosis': [self.info_dataframe.iloc[idx].Diagnosis, torch.tensor(self.class_dict[self.info_dataframe.iloc[idx].Diagnosis], dtype=torch.long)],
+                  'img': img,
+                  'prior': prior,
+                  }
+        return sample
