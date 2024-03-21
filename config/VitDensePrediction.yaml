@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E33
-  name: dp_ViT_DMN13_33
+  tag: DMN13E36
+  name: dp_ViT_DMN13_36
   edition: 1
   architecture: ViT
   save_model: True
@@ -37,7 +37,7 @@ DATASET:
 TRAIN:
   epochs: 150
   early_stop: False
-  base_lr: 5e-3
+  base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.1
   step_lr: 150
@@ -45,9 +45,9 @@ TRAIN:
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: CMP
+  loss: CHAIN
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: CMP
+  metric: CHAIN

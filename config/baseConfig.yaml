@@ -1,16 +1,23 @@
 EXPERIMENT:
-  tag: DMN13E2
-  name: dp_Diffusion_DMN13_2
+  tag: DMN13E28
+  name: dp_ViT_DMN13_28
   edition: 1
-  architecture: Diffusion
+  architecture: ViT
   save_model: True
 MODEL:
-  backbone_arch: 'C-UNet' 
-  noise_step: 1000
-  beta_begin: 1e-4 
-  beta_end: 0.02
-  img_size: [10, 33, 43, 32]
-  machine: 'cuda'
+  img_size: [53, 63, 52]
+  patch_size: 5
+  in_chans: 1
+  embed_dim: 96
+  down_sample_ratio: 1.
+  depth: 1
+  n_heads: 6
+  mlp_ratio: 1
+  qkv_bias: True
+  p: 0.3
+  attn_p: 0.4
+  attn_type: space_time
+  n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
@@ -28,12 +35,12 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 500
+  epochs: 150
   early_stop: False
   base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 30
+  step_lr: 150
   batch_size: 2
   workers: 1
   warmup_epochs: 0
