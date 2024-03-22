@@ -143,11 +143,11 @@ def main():
     else:
         base_model = ScepterConvMixer(**conf.MODEL)
     base_model.apply(weights_init)
-    if torch.cuda.device_count() > 1:
-        base_model = DataParallel(base_model, device_ids = gpu_ids)
-        logging.info(f"Pytorch Distributed Data Parallel activated using gpus: {gpu_ids}")
     if torch.cuda.is_available():
         base_model = base_model.cuda()
+        if torch.cuda.device_count() > 1:
+            base_model = DataParallel(base_model, device_ids = gpu_ids)
+            logging.info(f"Pytorch Distributed Data Parallel activated using gpus: {gpu_ids}")        
     optimizer = torch.optim.Adam(base_model.parameters(), lr=float(conf.TRAIN.base_lr))
     scheduler = lr_scheduler.StepLR(optimizer, step_size=int(conf.TRAIN.step_lr), gamma=float(conf.TRAIN.weight_decay))
     best_loss = float('inf')
