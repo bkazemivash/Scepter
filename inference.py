@@ -14,11 +14,11 @@ def main():
     parser = argparse.ArgumentParser(prog='Scepter inference module.',
                                      description='Dense prediction of dynamic maps.',
                                      epilog='Check ReadMe file for more information.',)
-    parser.add_argument('-c', '--config', help='Path to the config file.')
-    parser.add_argument('-m', '--mask', help='Path to the config file.')
-    parser.add_argument('-d', '--dataset', help='Path to the config file.')
-    parser.add_argument('-s', '--save_dir', help='Path to the config file.')
-    parser.add_argument('-p', '--checkpoint', help='Path to the config file.')
+    parser.add_argument('-c', '--config', required=True, help='Path to the config file.')
+    parser.add_argument('-m', '--mask', required=True, help='Path to the config file.')
+    parser.add_argument('-d', '--dataset', required=True, help='Path to the config file.')
+    parser.add_argument('-s', '--save_dir', required=True, help='Path to the config file.')
+    parser.add_argument('-p', '--checkpoint', required=True, help='Path to the config file.')
     args = parser.parse_args()
 
     logging.root.setLevel(logging.NOTSET)
