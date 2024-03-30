@@ -180,7 +180,7 @@ def main():
                 scheduler.step()
             epoch_loss = running_loss / len(data_pack[phase])
             phase_error[phase] = epoch_loss
-        logging.info("Epoch {}/{} - Train Loss: {:.10f} and Validation Loss: {:.10f}".format(epoch+1, num_epochs, phase_error['train'], phase_error['val']))
+        logging.info("Epoch {}/{} - LR: {:.5f} - Train Loss: {:.10f} and Validation Loss: {:.10f}".format(epoch+1, num_epochs, scheduler.get_last_lr(), phase_error['train'], phase_error['val']))
         writer.add_scalars("Loss", {'train': phase_error['train'], 'validation': phase_error['val']}, epoch)
         if phase == 'val' and save_flag and epoch_loss < best_loss:
             best_loss = epoch_loss
