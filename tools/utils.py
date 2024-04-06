@@ -148,7 +148,7 @@ def fmri_preprocess(inp_img: Union[str, Nifti1Image],
     data_ = apply_mask(original_img, mask_img)
     if blur:
         data_ = gaussian_filter(data_, sigma=0.5)
-    data_ = (data_ - data_.mean(axis=1)[:, None]) / data_.std(axis=1)[:, None]
+    data_ = (data_ - data_.mean()) / data_.std()
     if denoise:
         cutoff = [data_.mean() - (3. * data_.std()), data_.mean() + (3. * data_.std())]
         data_[(data_>cutoff[1]) | (data_<cutoff[0])] = 0.
