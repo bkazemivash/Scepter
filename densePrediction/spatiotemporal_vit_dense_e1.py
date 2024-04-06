@@ -158,7 +158,7 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.pe[None, :, :]
+        x = x + self.pe
         return x
     
 class DecoderHead(nn.Module):
