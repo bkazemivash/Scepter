@@ -40,14 +40,14 @@ TRAIN:
   base_lr: 1e-2
   min_lr: 1e-8
   weight_decay: 0.1
-  step_lr: 150
+  step_lr: 40
   batch_size: 2
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: MSE
+  loss: CMP
 TEST:
   test_size: 1
   test_workers: 0
   shuffling: False
-  metric: MSE
+  metric: CMP
