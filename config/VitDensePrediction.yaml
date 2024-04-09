@@ -48,7 +48,7 @@ TRAIN:
   warmup_lr: 1e-2
   loss: CMP
 TEST:
-  test_size: 1
+  test_size: 2
   test_workers: 0
   shuffling: False
   metric: CMP
