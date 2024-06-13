@@ -1,5 +1,18 @@
+# Test units
+test-units/
+test-base/
+
+# Other files and folders
+.settings/
 __pycache__
 .ipynb_checkpoints
 *.ipynb
 *.txt
+
+
+# Build and Release Folders
+bin-debug/
+bin-release/
+[Oo]bj/
+[Bb]in/
 run/
