@@ -1,23 +1,18 @@
 EXPERIMENT:
-  tag: DMN13E40
-  name: dp_ViT_DMN13_40
+  tag: DMN13E1
+  name: dp_AE_DMN13_1
   edition: 1
-  architecture: ViT
+  architecture: STAE
   save_model: True
 MODEL:
-  img_size: [53, 63, 52]
-  patch_size: 5
-  in_chans: 1
-  embed_dim: 96
-  down_sample_ratio: 1.
-  depth: 1
-  n_heads: 6
-  mlp_ratio: 1
-  qkv_bias: True
-  p: 0.3
-  attn_p: 0.4
-  attn_type: space_time
-  n_timepoints: 10
+  o_ch: 5
+  in_ch: 1
+  ks: 3
+  embed_dim: 3456
+  n_heads: 4
+  depth: 4
+  sequence_type: 'LSTM'
+  p: .2
 DATASET:
   dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
