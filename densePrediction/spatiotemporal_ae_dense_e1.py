@@ -129,8 +129,20 @@ class Up(nn.Module):
         return x
 
 class SpatiotemporalAutoEncoder(nn.Module):
-    def __init__(self, in_ch, o_ch, ks = 3, embed_dim = 3456, n_head = 4, 
-                 depth = 4, sequence_type: str = 'LSTM', p: float = 0.) -> None:
+    """Implementation of spatiotemporal Autoencoder.
+
+    Args:
+        in_ch (int): Input channel size.
+        o_ch (int): Output channel size.
+        ks (int, optional): Kernel size. Defaults to 3.
+        embed_dim (int, optional): Embedding dimenstion of sequnce. Defaults to 3456.
+        n_heads (int, optional): Number of attention heads. Defaults to 4.
+        depth (int, optional): Depth of encoder and decoder blocks. Defaults to 4.
+        sequence_type (str, optional): Scenario of sequence modeling including LSTM, and GRU. Defaults to 'LSTM'.
+        p (float, optional): Dropout ratio. Defaults to 0..
+    """
+    def __init__(self, in_ch: int, o_ch: int, ks: int = 3, embed_dim: int = 3456, n_heads: int = 4, 
+                 depth: int = 4, sequence_type: str = 'LSTM', p: float = 0.) -> None:
         super().__init__()
         
         self.enc_type = sequence_type
@@ -139,7 +151,7 @@ class SpatiotemporalAutoEncoder(nn.Module):
                 layer for i in range(depth) for layer in (
                     DoubleConv(in_ch, o_ch) if i == 0 else nn.Identity(),
                     Down(o_ch * 2**i, o_ch * 2**(i+1)),
-                    AttentionMechanism(o_ch * 2**(i+1), n_head, p_ratio=p) if i == depth - 1 else nn.Identity(),
+                    AttentionMechanism(o_ch * 2**(i+1), n_heads, p_ratio=p) if i == depth - 1 else nn.Identity(),
                 )
             ]
         )
