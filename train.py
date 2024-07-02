@@ -13,6 +13,7 @@ from lib.summary_metrics import ssim_3D
 from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
 from densePrediction.spatiotemporal_diffusion_dense_e1 import DiffusionModel
+from densePrediction.spatiotemporal_ae_dense_e1 import SpatiotemporalAutoEncoder
 from tools.utils import weights_init, fetch_list_of_backup_files
 from omegaconf import OmegaConf
 
@@ -139,7 +140,9 @@ def main():
     if model_architecture == 'ViT':
         base_model = ScepterVisionTransformer(**conf.MODEL)
     elif model_architecture == 'Diffusion':
-        base_model = DiffusionModel(**conf.MODEL)        
+        base_model = DiffusionModel(**conf.MODEL)  
+    elif model_architecture == 'STAE':
+        base_model = SpatiotemporalAutoEncoder(**conf.MODEL)                
     else:
         base_model = ScepterConvMixer(**conf.MODEL)
     base_model.apply(weights_init)
