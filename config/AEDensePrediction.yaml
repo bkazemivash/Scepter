@@ -1,17 +1,17 @@
 EXPERIMENT:
-  tag: DMN13E1
-  name: dp_AE_DMN13_1
+  tag: DMN13E4
+  name: dp_AE_DMN13_4
   edition: 1
   architecture: STAE
   save_model: True
 MODEL:
-  o_ch: 5
+  o_ch: 8
   in_ch: 1
   ks: 3
   embed_dim: 3456
   n_heads: 4
   depth: 4
-  sequence_type: 'LSTM'
+  sequence_type: 'GRU'
   p: .2
 DATASET:
   dataset_name: FBIRN
@@ -32,10 +32,10 @@ DATASET:
 TRAIN:
   epochs: 110
   early_stop: False
-  base_lr: 1e-2
+  base_lr: 1e-1
   min_lr: 4e-5
   weight_decay: 0.1
-  step_lr: 20
+  step_lr: 50
   milestones: [5, 15, 50, 100]
   batch_size: 2
   workers: 1
