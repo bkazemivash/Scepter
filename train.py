@@ -86,6 +86,7 @@ def main():
     parser.add_argument('-t', '--dataset', required=True, help='Path to pandas dataframe that keeps list of images')    
     parser.add_argument('-s', '--save_dir', required=True, help='Path to save checkpoint')  
     parser.add_argument('-l', '--log_dir', required=True, help='Path to save logfile')  
+    parser.add_argument('-f', '--fine_tune', required=False, help='Path to the checkpoint in case of fine-tuning scenario')  
     args = parser.parse_args()
     
     logging.root.setLevel(logging.NOTSET)
@@ -103,6 +104,8 @@ def main():
         raise FileNotFoundError(f"Save directory does not exist, {args.save_dir}")  
     if not (os.path.exists(args.log_dir)):
         raise FileNotFoundError(f"Log directory does not exist, {args.log_dir}")  
+    if args.fine_tune is not None and not (os.path.exists(args.fine_tune)):
+        raise FileNotFoundError(f"Checkpoint file does not exist, {args.fine_tune}")  
     
     logging.info("Loading configuration data ...")
     conf = OmegaConf.load(args.config)
@@ -110,6 +113,7 @@ def main():
     experiment_tag = conf.EXPERIMENT.tag
     experiment_name = conf.EXPERIMENT.name
     model_architecture = conf.EXPERIMENT.architecture
+    fine_tuning_checkpoint = os.path.abspath(args.fine_tune) if args.fine_tune is not None else None
     checkpoints_directory = os.path.join(args.save_dir, experiment_tag)
     mask_file_path = os.path.abspath(args.mask)
     dataset_file = os.path.abspath(args.dataset)
@@ -145,7 +149,13 @@ def main():
         base_model = SpatiotemporalAutoEncoder(**conf.MODEL)                
     else:
         base_model = ScepterConvMixer(**conf.MODEL)
-    base_model.apply(weights_init)
+    if fine_tuning_checkpoint is not None:
+        checkpoint = torch.load(fine_tuning_checkpoint)
+        base_model.load_state_dict(checkpoint['state_dict'], strict=True)
+        logging.info(f"Model weights loaded for fine-tuning.")   
+    else:
+        base_model.apply(weights_init)
+        logging.info(f"Model weights randomly initilized.")   
     if torch.cuda.is_available():
         base_model = base_model.cuda()
         if torch.cuda.device_count() > 1:
