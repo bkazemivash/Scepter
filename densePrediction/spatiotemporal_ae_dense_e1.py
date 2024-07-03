@@ -151,11 +151,10 @@ class SpatiotemporalAutoEncoder(nn.Module):
                 layer for i in range(depth) for layer in (
                     DoubleConv(in_ch, o_ch) if i == 0 else nn.Identity(),
                     Down(o_ch * 2**i, o_ch * 2**(i+1)),
-                    AttentionMechanism(o_ch * 2**(i+1), n_heads, p_ratio=p) if i == depth - 1 else nn.Identity(),
                 )
             ]
         )
-        
+        self.attn_stage = AttentionMechanism(o_ch * 2**(depth), n_heads, p_ratio=p)
         self.temporal_enc = nn.LSTM(embed_dim, embed_dim, 2, batch_first=True) \
             if sequence_type == 'LSTM' else nn.GRU(embed_dim, embed_dim, 2, batch_first=True)
 
@@ -174,6 +173,7 @@ class SpatiotemporalAutoEncoder(nn.Module):
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z) 
         for layer in self.down_stage:
             x = layer(x)
+        x = x + self.attn_stage(x)
         head_shape = x.shape
         x = x.flatten(1).reshape(b, t, -1)     
         x = self.temporal_enc(x)[0]
