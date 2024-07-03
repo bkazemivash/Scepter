@@ -30,12 +30,12 @@ DATASET:
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 110
+  epochs: 100
   early_stop: False
-  base_lr: 1e-1
+  base_lr: 1e-3
   min_lr: 4e-5
   weight_decay: 0.1
-  step_lr: 50
+  step_lr: 40
   milestones: [5, 15, 50, 100]
   batch_size: 2
   workers: 1
