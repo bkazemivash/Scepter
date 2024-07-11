@@ -128,6 +128,7 @@ class Up(nn.Module):
         x = self.conv(x)
         return x
 
+
 class SpatiotemporalAutoEncoder(nn.Module):
     """Implementation of spatiotemporal Autoencoder.
 
@@ -140,30 +141,33 @@ class SpatiotemporalAutoEncoder(nn.Module):
         depth (int, optional): Depth of encoder and decoder blocks. Defaults to 4.
         sequence_type (str, optional): Scenario of sequence modeling including LSTM, and GRU. Defaults to 'LSTM'.
         p (float, optional): Dropout ratio. Defaults to 0..
+        n_timepoints (int, optional): Number of timepoints. Defaults to 490.
     """
     def __init__(self, in_ch: int, o_ch: int, ks: int = 3, embed_dim: int = 3456, n_heads: int = 4, 
-                 depth: int = 4, sequence_type: str = 'LSTM', p: float = 0.) -> None:
+                 depth: int = 4, sequence_type: str = 'LSTM', p: float = 0., n_timepoints: int = 490) -> None:
         super().__init__()
         
         self.enc_type = sequence_type
+        self.n_timepoints = n_timepoints
         self.down_stage = nn.ModuleList(
             [
                 layer for i in range(depth) for layer in (
-                    DoubleConv(in_ch, o_ch) if i == 0 else nn.Identity(),
+                    DoubleConv(in_ch, o_ch) if i == 0 else nn.RReLU(lower=.3, upper=.8),
                     Down(o_ch * 2**i, o_ch * 2**(i+1)),
                 )
             ]
         )
         self.attn_stage = AttentionMechanism(o_ch * 2**(depth), n_heads, p_ratio=p)
-        self.temporal_enc = nn.LSTM(embed_dim, embed_dim, 2, batch_first=True) \
-            if sequence_type == 'LSTM' else nn.GRU(embed_dim, embed_dim, 2, batch_first=True)
+        self.temporal_enc = nn.LSTM(embed_dim, embed_dim, 2, batch_first=True, dropout=p) \
+            if sequence_type == 'LSTM' else nn.GRU(embed_dim, embed_dim, 2, batch_first=True, dropout=p)
 
+        self.temporal_pos_embed = nn.Parameter(torch.zeros(1, n_timepoints, embed_dim))
         self.Up_stage = nn.ModuleList(
             [
                 layer for i in range(depth) for layer in (
                     Up(o_ch * 2**(depth-i), o_ch * 2**(depth-1-i)), 
                     DoubleConv(o_ch * 2**(depth-1-i), o_ch * 2**(depth-i-1)),
-                    Up(o_ch, in_ch) if i == depth - 1 else nn.Identity(),
+                    Up(o_ch, in_ch) if i == depth - 1 else nn.RReLU(),
                 )
             ]
         )
@@ -173,10 +177,11 @@ class SpatiotemporalAutoEncoder(nn.Module):
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z) 
         for layer in self.down_stage:
             x = layer(x)
-        x = x + self.attn_stage(x)
+        x = F.tanhshrink(x + self.attn_stage(x))
         head_shape = x.shape
         x = x.flatten(1).reshape(b, t, -1)     
         x = self.temporal_enc(x)[0]
+        x = F.tanhshrink(x + self.temporal_pos_embed)
         x = x.reshape(head_shape)
         for layer in self.Up_stage:
             x = layer(x)
