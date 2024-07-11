@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E4
-  name: dp_AE_DMN13_4
+  tag: DMN13E5
+  name: dp_AE_DMN13_5
   edition: 1
   architecture: STAE
   save_model: True
@@ -11,8 +11,9 @@ MODEL:
   embed_dim: 3456
   n_heads: 4
   depth: 4
-  sequence_type: 'GRU'
+  sequence_type: 'LSTM'
   p: .2
+  n_timepoint: 10
 DATASET:
   dataset_name: FBIRN
   image_size: [53, 63, 52, 100]
