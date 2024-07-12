@@ -74,14 +74,14 @@ class DoubleConv(nn.Module):
         self.double_conv = nn.Sequential(
             nn.Conv3d(in_ch, mid_ch, kernel_size=3, padding=1, bias=False),
             nn.GroupNorm(mid_ch, mid_ch),
-            nn.GELU(),
+            nn.RReLU(),
             nn.Conv3d(mid_ch, out_ch, kernel_size=3, padding=1, bias=False),
             nn.GroupNorm(out_ch, out_ch),
         )
 
     def forward(self, x):
         if self.residual:
-            return F.gelu(x + self.double_conv(x))
+            return F.rrelu(x + self.double_conv(x))
         else:
             return self.double_conv(x)
 
@@ -118,13 +118,19 @@ class Up(nn.Module):
     def __init__(self, in_ch, out_ch,):
         super().__init__()
 
+        self.var_stage = nn.Sequential(
+            nn.ConvTranspose3d(in_ch, in_ch, kernel_size=4, stride=2, padding=1),
+            nn.Dropout(.3),
+            nn.RReLU(),
+        )
+
         self.conv = nn.Sequential(
             DoubleConv(in_ch, in_ch, residual=True),
             DoubleConv(in_ch, out_ch, in_ch // 2),
         )
 
     def forward(self, x):
-        x = F.interpolate(x, scale_factor=2)
+        x = self.var_stage(x)    # x = F.interpolate(x, scale_factor=2)
         x = self.conv(x)
         return x
 
@@ -152,7 +158,7 @@ class SpatiotemporalAutoEncoder(nn.Module):
         self.down_stage = nn.ModuleList(
             [
                 layer for i in range(depth) for layer in (
-                    DoubleConv(in_ch, o_ch) if i == 0 else nn.RReLU(lower=.3, upper=.8),
+                    DoubleConv(in_ch, o_ch) if i == 0 else nn.RReLU(),
                     Down(o_ch * 2**i, o_ch * 2**(i+1)),
                 )
             ]
@@ -177,11 +183,11 @@ class SpatiotemporalAutoEncoder(nn.Module):
         x = x.permute(0,2,1,3,4,5).reshape(b * t, c, i, j, z) 
         for layer in self.down_stage:
             x = layer(x)
-        x = F.tanhshrink(x + self.attn_stage(x))
+        x = F.rrelu(x + self.attn_stage(x))
         head_shape = x.shape
         x = x.flatten(1).reshape(b, t, -1)     
         x = self.temporal_enc(x)[0]
-        x = F.tanhshrink(x + self.temporal_pos_embed)
+        x = F.rrelu(x + self.temporal_pos_embed)
         x = x.reshape(head_shape)
         for layer in self.Up_stage:
             x = layer(x)
