@@ -115,12 +115,12 @@ class Up(nn.Module):
         out_ch (int): Output channel size.
         emb_dim (int, optional): Embedding dimenstion of iteration index. Defaults to 256.
     """
-    def __init__(self, in_ch, out_ch,):
+    def __init__(self, in_ch: int, out_ch: int, p_ratio: float = 0.):
         super().__init__()
 
         self.var_stage = nn.Sequential(
             nn.ConvTranspose3d(in_ch, in_ch, kernel_size=4, stride=2, padding=1),
-            nn.Dropout(.3),
+            nn.Dropout(p_ratio),
             nn.RReLU(),
         )
 
@@ -171,9 +171,9 @@ class SpatiotemporalAutoEncoder(nn.Module):
         self.Up_stage = nn.ModuleList(
             [
                 layer for i in range(depth) for layer in (
-                    Up(o_ch * 2**(depth-i), o_ch * 2**(depth-1-i)), 
+                    Up(o_ch * 2**(depth-i), o_ch * 2**(depth-1-i), p), 
                     DoubleConv(o_ch * 2**(depth-1-i), o_ch * 2**(depth-i-1)),
-                    Up(o_ch, in_ch) if i == depth - 1 else nn.RReLU(),
+                    Up(o_ch, in_ch, p) if i == depth - 1 else nn.RReLU(),
                 )
             ]
         )
