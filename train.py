@@ -56,7 +56,7 @@ def criterion(x1: torch.Tensor,
         return 100 * (1 - ssim_3D(x1, x2, 7))
     elif loss_function == 'DLTLCSH':
         term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
-        term2 = torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
+        term2 = 100 * torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
         return (term1 + term2) / 2
     elif loss_function == 'CHAIN':
         term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
