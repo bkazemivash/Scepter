@@ -139,7 +139,7 @@ class ScepterViTDataset(Dataset):
         Returns:
             torch.Tensor: Index of relevent class.
         """
-        if self.task == 'Recognition':
+        if self.task in ['Recognition', 'Reconstruction']:
             return None
         self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
         if self.dataset_name == 'BSNIP':
@@ -176,7 +176,7 @@ class ScepterViTDataset(Dataset):
         if self.peak_slice:
             cut_coord = slice(self.peak_slice[2]-1, self.peak_slice[2]+2)
             img = img[:,:,cut_coord]
-            prior = prior[:,:,cut_coord]
+            prior = None if prior is None else prior[:,:,cut_coord]
 
         sample = {'SubjectID': self.info_dataframe.iloc[idx].SubjectID,
                   'Age': self.info_dataframe.iloc[idx].Age,
