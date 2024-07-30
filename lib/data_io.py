@@ -140,7 +140,7 @@ class ScepterViTDataset(Dataset):
             torch.Tensor: Index of relevent class.
         """
         if self.task in ['Recognition', 'Reconstruction']:
-            return None
+            return 'None'
         self.verified_networks = np.arange(100) if self.verified_networks == None else self.verified_networks
         if self.dataset_name == 'BSNIP':
             img_dir = self.info_dataframe.iloc[sample_idx].SideInfo
