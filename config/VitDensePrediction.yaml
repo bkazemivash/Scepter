@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN13E40
-  name: dp_ViT_DMN13_40
+  tag: SC4E102
+  name: dp_ViT_SC4_102
   edition: 1
   architecture: ViT
   save_model: True
@@ -30,7 +30,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [13]
+  valid_ids: [4]
   transform: True
   use_peak_slice: null
   task: DensePrediction
