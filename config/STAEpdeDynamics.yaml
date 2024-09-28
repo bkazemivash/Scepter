@@ -1,8 +1,8 @@
 EXPERIMENT:
-  tag: DMN13E12
-  name: dp_AE_DMN13_12
+  tag: KSPDE1E4
+  name: dp_AE_KSPDE1_4
   edition: 1
-  architecture: STAE
+  architecture: PINN
   save_model: True
 MODEL:
   o_ch: 8
@@ -13,15 +13,15 @@ MODEL:
   depth: 4
   sequence_type: 'LSTM'
   p: .3
-  n_timepoints: 10
+  n_timepoints: 15
 DATASET:
-  dataset_name: FBIRN
+  dataset_name: BSNIP
   image_size: [53, 63, 52, 100]
   clean_up: False
   smooth: True
   imbalanced_flag: False
-  n_timepoint: 10
-  sampling_rate: 10
+  n_timepoint: 15
+  sampling_rate: 1
   stablize: False
   inp_mode: fMRI
   keep_shape: True
@@ -31,20 +31,21 @@ DATASET:
   use_peak_slice: null
   task: PdeForecasting
 TRAIN:
-  epochs: 100
+  epochs: 200
   early_stop: False
-  base_lr: 1e-2
+  base_lr: 1e-1
   min_lr: 4e-5
   weight_decay: 0.1
-  step_lr: 40
+  step_lr: 100
   milestones: [5, 15, 50, 100]
   batch_size: 2
   workers: 1
   warmup_epochs: 0
   warmup_lr: 1e-2
-  loss: DLTLCSH
+  loss: PDE
+  loss_config: Kuramoto_Sivashinsky
 TEST:
   test_size: 2
   test_workers: 0
   shuffling: False
-  metric: DLTLCSH
+  metric: PDE

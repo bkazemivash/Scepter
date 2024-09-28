@@ -29,7 +29,7 @@ DATASET:
   valid_ids: [13]
   transform: True
   use_peak_slice: null
-  task: PdeForecasting
+  task: DensePrediction
 TRAIN:
   epochs: 100
   early_stop: False
