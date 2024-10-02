@@ -353,8 +353,8 @@ def fetch_list_of_backup_files(model_arch: str) -> tuple:
         file_names_ = ('VitDensePrediction.yaml', 'spatiotemporal_vit_dense_e1.py')
     elif model_arch == 'STAE':
         file_names_ = ('AEDensePrediction.yaml', 'spatiotemporal_ae_dense_e1.py')        
-    elif model_arch == 'PINN':
-        file_names_ = ('STAEpdeDynamics.yaml', 'spatiotemporal_ae_pde_e1.py')  
+    elif model_arch == 'SwinTransformer':
+        file_names_ = ('SwinTransformerV2DensePrediction.yaml', 'spatiotemporal_swinT_dense_e1.py')  
     else:
         file_names_ = ('DiffusionDensePrediction.yaml', 'spatiotemporal_diffusion_dense_e1.py')
     
