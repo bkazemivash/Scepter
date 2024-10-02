@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: SC4E102
-  name: dp_ViT_SC4_102
+  tag: MTRP5E100
+  name: dp_ViT_MTRP5_100
   edition: 1
   architecture: ViT
   save_model: True
@@ -30,7 +30,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [4]
+  valid_ids: [5]
   transform: True
   use_peak_slice: null
   task: DensePrediction
