@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN18E104
-  name: dp_ViT_DMN18_104
+  tag: SC4E202
+  name: dp_ViT_SC4_202
   edition: 1
   architecture: ViT
   save_model: True
@@ -16,7 +16,7 @@ MODEL:
   qkv_bias: True
   p: 0.3
   attn_p: 0.4
-  attn_type: space_time
+  attn_type: sequential_encoders
   n_timepoints: 10
 DATASET:
   dataset_name: FBIRN
@@ -30,7 +30,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [18]
+  valid_ids: [4]
   transform: True
   use_peak_slice: null
   task: DensePrediction
