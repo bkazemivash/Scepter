@@ -244,14 +244,19 @@ class ScepterVisionTransformer(nn.Module):
 
         if attn_type in ['sequential_encoders']:
             self.spatial_pos_embed = nn.Parameter(torch.zeros(1, self.patch_embed.n_patches, embed_dim))
-            self.pos_embed_temporal = nn.Parameter(torch.zeros(1, self.time_dim, embed_dim))                        
-            self.temporal_encoder = EncoderBlock(
-                                        dim=embed_dim, 
-                                        n_heads=n_heads, 
-                                        mlp_ratio=mlp_ratio, 
-                                        qkv_bias=qkv_bias, 
-                                        p=p, 
-                                        attn_p=attn_p,)
+            self.temporal_pos_embed = nn.Parameter(torch.zeros(1, self.time_dim, embed_dim))                        
+            self.temporal_encoder = nn.ModuleList(
+                [
+                    EncoderBlock(
+                        dim=embed_dim, 
+                        n_heads=n_heads, 
+                        mlp_ratio=mlp_ratio, 
+                        qkv_bias=qkv_bias, 
+                        p=p, 
+                        attn_p=attn_p,)
+                    for _ in range(depth)
+                ]
+            )
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = DecoderHead(
@@ -281,9 +286,10 @@ class ScepterVisionTransformer(nn.Module):
             n_samples *= n_patch
             x = torch.reshape(x, (n_samples, self.time_dim, embbeding_dim))
 
-            x = x + self.pos_embed_temporal
+            x = x + self.temporal_pos_embed
             x = self.pos_drop(x)
-            x = self.temporal_encoder(x)
+            for block in self.temporal_encoder:
+                x = block(x)
 
             n_samples //= n_patch 
             x = x.reshape(n_samples, n_patch, self.time_dim, embbeding_dim).permute(0,2,1,3)
