@@ -14,6 +14,7 @@ from densePrediction.spatiotemporal_cmixer_dense_e1 import ScepterConvMixer
 from densePrediction.spatiotemporal_vit_dense_e1 import ScepterVisionTransformer
 from densePrediction.spatiotemporal_diffusion_dense_e1 import DiffusionModel
 from densePrediction.spatiotemporal_ae_dense_e1 import SpatiotemporalAutoEncoder
+from lib.compute_pde import pde_dynamics
 from tools.utils import weights_init, fetch_list_of_backup_files
 from omegaconf import OmegaConf
 
@@ -45,9 +46,9 @@ def criterion(x1: torch.Tensor,
         metric = CosineSimilarity(dim=1, eps=1e-6)
         return (1. - metric(x1.contiguous().view(bs, -1), x2.contiguous().view(bs, -1))).mean()
     elif loss_function == 'LCSH':
-        return torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        return torch.log(torch.cosh(x1 - x2)).sum()
     elif loss_function == 'DLT':
-        return torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
+        return torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum()
     elif loss_function == 'SSIM3D':
         b, c, x, y ,z, t = x1.shape
         b *= t
@@ -55,19 +56,24 @@ def criterion(x1: torch.Tensor,
         x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
         return 100 * (1 - ssim_3D(x1, x2, 7))
     elif loss_function == 'DLTLCSH':
-        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
-        term2 = 2 * torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum() / x1.shape[0]
+        term1 = torch.log(torch.cosh(x1 - x2)).sum()
+        term2 = 2 * torch.log(torch.cosh(torch.diff(x1, dim=-1) - torch.diff(x2, dim=-1))).sum()
         return (term1 + term2) / 2
     elif loss_function == 'CHAIN':
-        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        term1 = torch.log(torch.cosh(x1 - x2)).sum()
         b, c, x, y ,z, t = x1.shape
         b *= t
         x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
         x2 = x2.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
         term2 = 1000 * (1 - ssim_3D(x1, x2, 7))
         return term1 + term2
+    elif loss_function == 'PDE':
+        landa_, beta_ = 1. , .1
+        metric = MSELoss(reduction='sum')
+        f_prime = pde_dynamics(x1)
+        return landa_ * metric(x1, x2) + beta_ * torch.norm(f_prime)
     else:
-        term1 = torch.log(torch.cosh(x1 - x2)).sum() / x1.shape[0]
+        term1 = torch.log(torch.cosh(x1 - x2)).sum()
         b, c, x, y ,z, t = x1.shape
         b *= t
         x1 = x1.permute(0,5,1,2,3,4).reshape(b, c, x, y, z)
