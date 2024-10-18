@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: SC4E202
-  name: dp_ViT_SC4_202
+  tag: VI12E201
+  name: dp_ViT_VI12_201
   edition: 1
   architecture: ViT
   save_model: True
