@@ -30,7 +30,7 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [4]
+  valid_ids: [12]
   transform: True
   use_peak_slice: null
   task: DensePrediction
