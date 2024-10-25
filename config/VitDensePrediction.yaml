@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN18E401
-  name: dp_ViT_DMN18_401
+  tag: DMN18E406
+  name: dp_ViT_DMN18_406
   edition: 1
   architecture: ViT
   save_model: True
@@ -37,10 +37,10 @@ DATASET:
 TRAIN:
   epochs: 150
   early_stop: False
-  base_lr: 1e-2
+  base_lr: 2e-3
   min_lr: 4e-5
-  weight_decay: 0.1
-  step_lr: 50
+  weight_decay: 0.6
+  step_lr: 20
   milestones: [5, 15, 50, 100]
   batch_size: 2
   workers: 1
