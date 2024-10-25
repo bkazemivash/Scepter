@@ -257,6 +257,7 @@ class ScepterVisionTransformer(nn.Module):
                     for _ in range(depth)
                 ]
             )
+            self.norm_t = nn.LayerNorm([n_timepoints, embed_dim])
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = DecoderHead(
@@ -291,6 +292,7 @@ class ScepterVisionTransformer(nn.Module):
             for block in self.temporal_encoder:
                 x = block(x)
 
+            x = self.norm_t(x)
             n_samples //= n_patch 
             x = x.reshape(n_samples, n_patch, self.time_dim, embbeding_dim).permute(0,2,1,3)
             n_samples *= self.time_dim
