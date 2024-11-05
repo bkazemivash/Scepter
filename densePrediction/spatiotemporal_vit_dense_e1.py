@@ -257,7 +257,7 @@ class ScepterVisionTransformer(nn.Module):
                     for _ in range(depth)
                 ]
             )
-            self.norm_t = nn.LayerNorm([n_timepoints, embed_dim])
+            self.norm_t = nn.LayerNorm([n_timepoints, embed_dim], eps=1e-3)
             
         self.norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = DecoderHead(
