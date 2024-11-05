@@ -1,6 +1,6 @@
 EXPERIMENT:
-  tag: DMN18E406
-  name: dp_ViT_DMN18_406
+  tag: SA15E205
+  name: dp_ViT_SA15_205
   edition: 1
   architecture: ViT
   save_model: True
@@ -30,12 +30,12 @@ DATASET:
   inp_mode: fMRI
   keep_shape: True
   has_input_channel: True
-  valid_ids: [18]
+  valid_ids: [15]
   transform: True
   use_peak_slice: null
   task: DensePrediction
 TRAIN:
-  epochs: 150
+  epochs: 100
   early_stop: False
   base_lr: 2e-3
   min_lr: 4e-5
